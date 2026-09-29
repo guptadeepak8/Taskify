@@ -15,63 +15,39 @@ import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { apiRequest, ApiError } from '../utils/api';
-import { RegisterResponse } from '../types';
-import {
-  validateEmail,
-  validatePassword,
-  validateConfirmPassword,
-  validateName,
-} from '../utils/validation';
+import { saveToken, saveUserData } from '../utils/storage';
+import { LoginResponse } from '../types';
+import { validateEmail } from '../utils/validation';
 
-export default function RegisterScreen() {
+export default function LoginScreen() {
   const router = useRouter();
 
-  // Form states
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Field touched states for inline validation
   const [touched, setTouched] = useState({
-    name: false,
     email: false,
     password: false,
-    confirmPassword: false,
   });
 
-  // UI status
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  // Compute inline validation errors
-  const nameError = touched.name ? validateName(name) : null;
+  // Inline validations
   const emailError = touched.email ? validateEmail(email) : null;
-  const passwordError = touched.password ? validatePassword(password) : null;
-  const confirmPasswordError = touched.confirmPassword
-    ? validateConfirmPassword(password, confirmPassword)
-    : null;
+  const passwordError = touched.password && !password.trim() ? 'Password is required' : null;
 
   const handleBlur = (field: keyof typeof touched) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
   };
 
-  const handleRegister = async () => {
-    // Mark all fields as touched
-    setTouched({
-      name: true,
-      email: true,
-      password: true,
-      confirmPassword: true,
-    });
+  const handleLogin = async () => {
+    setTouched({ email: true, password: true });
 
-    // Check all validations
-    const nErr = validateName(name);
     const eErr = validateEmail(email);
-    const pErr = validatePassword(password);
-    const cpErr = validateConfirmPassword(password, confirmPassword);
+    const pErr = !password.trim() ? 'Password is required' : null;
 
-    if (nErr || eErr || pErr || cpErr) {
+    if (eErr || pErr) {
       return;
     }
 
@@ -79,25 +55,39 @@ export default function RegisterScreen() {
     setLoading(true);
 
     try {
-      const response = await apiRequest<RegisterResponse>('/auth/register', {
+      const response = await apiRequest<LoginResponse>('/auth/login', {
         method: 'POST',
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
           password,
-          name: name.trim() || undefined,
         }),
       });
 
-      // On successful registration, route to OTP verification screen
-      router.push({
-        pathname: '/verify-otp',
-        params: { email: email.trim().toLowerCase() },
-      });
+      const { token, user } = response.data;
+
+      // Persist session securely for returning app sessions
+      await saveToken(token);
+      await saveUserData(user);
+
+      // Check if user has completed profile setup (phone & address)
+      if (!user.phone || !user.address) {
+        router.replace('/profile-setup');
+      } else {
+        router.replace('/home');
+      }
     } catch (error) {
       if (error instanceof ApiError) {
+        // If unverified, guide directly to OTP verification
+        if (error.code === 'EMAIL_NOT_VERIFIED') {
+          router.push({
+            pathname: '/verify-otp',
+            params: { email: email.trim().toLowerCase(), reason: 'unverified' },
+          });
+          return;
+        }
         setServerError(error.message);
       } else {
-        setServerError('Something went wrong. Please try again.');
+        setServerError('Unable to log in. Please check your credentials or network connection.');
       }
     } finally {
       setLoading(false);
@@ -117,10 +107,10 @@ export default function RegisterScreen() {
         >
           {/* Header section styled after the reference design */}
           <View style={styles.header}>
-            <Text style={styles.badge}>Get Started</Text>
-            <Text style={styles.title}>Create your account</Text>
+            <Text style={styles.badge}>Welcome Back</Text>
+            <Text style={styles.title}>Log in to Taskify</Text>
             <Text style={styles.subtitle}>
-              Register with Taskify to coordinate neighborhood home services and tasks seamlessly.
+              Enter your credentials to access your scheduled tasks and home services.
             </Text>
           </View>
 
@@ -129,19 +119,6 @@ export default function RegisterScreen() {
 
           {/* Form Fields */}
           <View style={styles.form}>
-            <Input
-              label="Full name (optional)"
-              placeholder="e.g. Aarav Sharma"
-              value={name}
-              onChangeText={(val) => {
-                setName(val);
-                if (serverError) setServerError(null);
-              }}
-              onBlur={() => handleBlur('name')}
-              error={nameError}
-              autoCapitalize="words"
-            />
-
             <Input
               label="Email address"
               placeholder="name@example.com"
@@ -159,7 +136,7 @@ export default function RegisterScreen() {
 
             <Input
               label="Password"
-              placeholder="At least 6 characters"
+              placeholder="Enter your password"
               value={password}
               onChangeText={(val) => {
                 setPassword(val);
@@ -170,37 +147,24 @@ export default function RegisterScreen() {
               isPassword
             />
 
-            <Input
-              label="Confirm password"
-              placeholder="Re-enter your password"
-              value={confirmPassword}
-              onChangeText={(val) => {
-                setConfirmPassword(val);
-                if (serverError) setServerError(null);
-              }}
-              onBlur={() => handleBlur('confirmPassword')}
-              error={confirmPasswordError}
-              isPassword
-            />
-
-            {/* Primary Action Button (Sage Green from Reference Image) */}
+            {/* Action Button (Sage Green from Reference Image) */}
             <View style={styles.actionContainer}>
               <Button
-                title="Create account"
+                title="Log in"
                 loading={loading}
-                loadingText="Creating account..."
-                onPress={handleRegister}
+                loadingText="Logging in..."
+                onPress={handleLogin}
               />
             </View>
 
-            {/* Login Link */}
+            {/* Switch to Register */}
             <View style={styles.footerLinkContainer}>
-              <Text style={styles.footerText}>Already have an account? </Text>
+              <Text style={styles.footerText}>Don't have an account? </Text>
               <TouchableOpacity
-                onPress={() => router.push('/login')}
+                onPress={() => router.push('/register')}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Text style={styles.loginLink}>Log in</Text>
+                <Text style={styles.signupLink}>Sign up</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -262,7 +226,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textMuted,
   },
-  loginLink: {
+  signupLink: {
     fontSize: 14,
     fontWeight: '600',
     color: Colors.primaryDark,
