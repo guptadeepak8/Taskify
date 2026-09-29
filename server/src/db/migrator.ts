@@ -1,11 +1,13 @@
 import { Migrator, MigrationProvider, Migration, MigrationResult } from 'kysely/migration';
 import { db } from './database';
 import * as m001 from './migrations/001_create_users_table';
+import * as m002 from './migrations/002_create_otps_table';
 
 class StaticMigrationProvider implements MigrationProvider {
   async getMigrations(): Promise<Record<string, Migration>> {
     return {
       '001_create_users_table': m001,
+      '002_create_otps_table': m002,
     };
   }
 }

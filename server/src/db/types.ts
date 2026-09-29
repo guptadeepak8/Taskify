@@ -13,8 +13,21 @@ export interface UserTable {
   updated_at: Generated<Date>;
 }
 
+export interface OtpTable {
+  id: Generated<string>;
+  user_id: string;
+  email: string;
+  otp_hash: string;
+  attempts: Generated<number>;
+  expires_at: Date;
+  last_sent_at: Generated<Date>;
+  is_used: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
 export interface Database {
   users: UserTable;
+  otps: OtpTable;
 }
 
 export type User = {
@@ -31,3 +44,15 @@ export type User = {
 };
 
 export type SafeUser = Omit<User, 'password_hash'>;
+
+export type Otp = {
+  id: string;
+  user_id: string;
+  email: string;
+  otp_hash: string;
+  attempts: number;
+  expires_at: Date;
+  last_sent_at: Date;
+  is_used: boolean;
+  created_at: Date;
+};
