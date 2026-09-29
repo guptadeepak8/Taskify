@@ -25,9 +25,26 @@ export interface OtpTable {
   created_at: Generated<Date>;
 }
 
+export interface TaskTable {
+  id: Generated<string>;
+  name: string;
+  category: string;
+  description: string;
+  created_at: Generated<Date>;
+}
+
+export interface UserTaskTable {
+  id: Generated<string>;
+  user_id: string;
+  task_id: string;
+  created_at: Generated<Date>;
+}
+
 export interface Database {
   users: UserTable;
   otps: OtpTable;
+  tasks: TaskTable;
+  user_tasks: UserTaskTable;
 }
 
 export type User = {
@@ -54,5 +71,20 @@ export type Otp = {
   expires_at: Date;
   last_sent_at: Date;
   is_used: boolean;
+  created_at: Date;
+};
+
+export type Task = {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  created_at: Date;
+};
+
+export type UserTask = {
+  id: string;
+  user_id: string;
+  task_id: string;
   created_at: Date;
 };
