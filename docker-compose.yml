@@ -1,4 +1,3 @@
-
 services:
   postgres:
     image: postgres:16
@@ -7,7 +6,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: taskify
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -21,26 +20,6 @@ services:
     ports:
       - "1025:1025"
       - "8025:8025"
-
-  api:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
-    environment:
-      NODE_ENV: development
-      PORT: 3000
-      DATABASE_URL: postgresql://taskify:password@postgres:5432/taskify
-      JWT_SECRET: local-development-secret-change-this
-      SMTP_HOST: mailpit
-      SMTP_PORT: 1025
-      SMTP_FROM: no-reply@taskify.local
-    ports:
-      - "3000:3000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      mailpit:
-        condition: service_started
 
 volumes:
   postgres_data:
