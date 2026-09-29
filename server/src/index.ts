@@ -1,15 +1,45 @@
+import express from 'express';
+import cors from 'cors';
+import { env } from './config/env';
+import apiRouter from './route';
+import { errorHandler } from './middleware/error.middleware';
+import { migrateToLatest } from './db/migrator';
 
-import express from "express";
+export const app = express();
 
-const app = express();
-const PORT = Number(process.env.PORT) || 3000;
-
+app.use(cors());
 app.use(express.json());
 
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok" });
+app.use('/api/v1', apiRouter);
+
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok' });
 });
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
+app.use((_req, res) => {
+  res.status(404).json({
+    success: false,
+    error: {
+      code: 'NOT_FOUND',
+      message: 'The requested resource was not found',
+    },
+  });
 });
+
+
+app.use(errorHandler);
+
+
+if (process.env.NODE_ENV !== 'test') {
+  (async () => {
+    try {
+      await migrateToLatest();
+    } catch (error) {
+      console.warn('Database migration skipped or deferred:', (error as Error).message);
+    }
+
+    app.listen(env.PORT, '0.0.0.0', () => {
+      console.log(`Server listening on http://0.0.0.0:${env.PORT}`);
+    });
+  })();
+}
