@@ -6,12 +6,12 @@ import {
   handleSaveUserTasks,
 } from './tasks.controller';
 import { authenticate } from '../../middleware/auth.middleware';
-import { validateBody } from '../../middleware/validate.middleware';
-import { selectTasksSchema } from './tasks.schema';
+import { validateBody, validateQuery } from '../../middleware/validate.middleware';
+import { selectTasksSchema, queryTasksSchema } from './tasks.schema';
 
 const router = Router();
 
-router.get('/', handleGetTasks);
+router.get('/', validateQuery(queryTasksSchema), handleGetTasks);
 router.get('/categories', handleGetCategories);
 router.get('/selected', authenticate, handleGetUserTasks);
 router.post('/select', authenticate, validateBody(selectTasksSchema), handleSaveUserTasks);
