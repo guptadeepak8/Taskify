@@ -19,7 +19,10 @@ export async function handleVerifyOtp(req: Request, res: Response, next: NextFun
     const result = await verifyOtp(req.body);
     return res.status(200).json({
       success: true,
-      data: result,
+      data: {
+        user: result.user,
+        token: result.token,
+      },
       message: 'Email verified successfully',
     });
   } catch (error) {
@@ -45,10 +48,20 @@ export async function handleLogin(req: Request, res: Response, next: NextFunctio
     const result = await loginUser(req.body);
     return res.status(200).json({
       success: true,
-      data: result,
+      data: {
+        user: result.user,
+        token: result.token,
+      },
       message: 'User logged in successfully',
     });
   } catch (error) {
     next(error);
   }
+}
+
+export async function handleLogout(_req: Request, res: Response) {
+  return res.status(200).json({
+    success: true,
+    message: 'Logged out successfully',
+  });
 }
