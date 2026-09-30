@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Colors, Spacing, BorderRadius } from '../constants/theme';
+import { Colors, Spacing } from '../constants/theme';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
@@ -188,13 +188,6 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: Spacing.xl,
-  },
-  badge: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.accent,
-    marginBottom: Spacing.sm,
-    letterSpacing: 0.3,
   },
   title: {
     fontSize: 28,

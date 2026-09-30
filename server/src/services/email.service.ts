@@ -5,7 +5,9 @@ const transporter = nodemailer.createTransport({
   host: env.SMTP_HOST,
   port: env.SMTP_PORT,
   secure: env.SMTP_SECURE,
-  ignoreTLS: true,
+  ...(env.SMTP_USER && env.SMTP_PASS
+    ? { auth: { user: env.SMTP_USER, pass: env.SMTP_PASS } }
+    : { ignoreTLS: true }),
 });
 
 export async function sendOtpEmail(to: string, otp: string): Promise<boolean> {
@@ -18,7 +20,7 @@ export async function sendOtpEmail(to: string, otp: string): Promise<boolean> {
     await transporter.sendMail({
       from: env.SMTP_FROM,
       to,
-      subject: 'Your Verification Code - PadosiPro',
+      subject: 'Your Verification Code - Taskify',
       text: `Your verification code is: ${otp}. It expires in 10 minutes.`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">

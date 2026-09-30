@@ -26,10 +26,6 @@ const CATEGORY_ICONS: Record<string, string> = {
   'Errands & Daily Tasks': '📦',
   'Health & Medical': '🩺',
   'Travel & Tourism': '✈️',
-  'Home Maintenance & Repairs': '🛠️',
-  'Cleaning & Housekeeping': '🧹',
-  'Delivery & Errand Services': '📦',
-  'Personal & Care Services': '🤝',
 };
 
 export default function TasksScreen() {

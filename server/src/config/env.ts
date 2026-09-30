@@ -11,5 +11,7 @@ export const env = {
   SMTP_HOST: process.env.SMTP_HOST || 'localhost',
   SMTP_PORT: Number(process.env.SMTP_PORT) || 1025,
   SMTP_SECURE: process.env.SMTP_SECURE === 'true',
+  SMTP_USER: process.env.SMTP_USER || '',
+  SMTP_PASS: process.env.SMTP_PASS || '',
   SMTP_FROM: process.env.SMTP_FROM || 'no-reply@taskify.local',
 };
