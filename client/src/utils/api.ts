@@ -1,13 +1,7 @@
-import { Platform } from 'react-native';
 import { getToken } from './storage';
 import { ApiErrorResponse, ApiResponse } from '../types';
 
-const DEFAULT_API_URL = Platform.select({
-  android: 'http://10.0.2.2:3000/api/v1',
-  default: 'http://localhost:3000/api/v1',
-});
-
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || DEFAULT_API_URL;
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || '';
 
 export class ApiError extends Error {
   code: string;
@@ -62,7 +56,6 @@ export async function apiRequest<T = any>(
     if (error instanceof ApiError) {
       throw error;
     }
-    // Network or connectivity errors
     throw new ApiError(0, {
       code: 'NETWORK_ERROR',
       message: 'Unable to reach the server. Please check your internet connection.',
