@@ -64,12 +64,9 @@ export default function LoginScreen() {
       });
 
       const { token, user } = response.data;
-
-      // Persist session securely for returning app sessions
       await saveToken(token);
       await saveUserData(user);
 
-      // Check if user has completed profile setup (phone & address)
       if (!user.phone || !user.address) {
         router.replace('/profile-setup');
       } else {
@@ -105,18 +102,13 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Header section styled after the reference design */}
           <View style={styles.header}>
             <Text style={styles.title}>Log in to Taskify</Text>
             <Text style={styles.subtitle}>
               Enter your credentials to access your scheduled tasks and home services.
             </Text>
           </View>
-
-          {/* Server Error Banner */}
           <ErrorBanner message={serverError} onDismiss={() => setServerError(null)} />
-
-          {/* Form Fields */}
           <View style={styles.form}>
             <Input
               label="Email address"
@@ -145,8 +137,6 @@ export default function LoginScreen() {
               error={passwordError}
               isPassword
             />
-
-            {/* Action Button (Sage Green from Reference Image) */}
             <View style={styles.actionContainer}>
               <Button
                 title="Log in"
@@ -155,8 +145,6 @@ export default function LoginScreen() {
                 onPress={handleLogin}
               />
             </View>
-
-            {/* Switch to Register */}
             <View style={styles.footerLinkContainer}>
               <Text style={styles.footerText}>Don't have an account? </Text>
               <TouchableOpacity

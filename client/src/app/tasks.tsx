@@ -41,10 +41,10 @@ export default function TasksScreen() {
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  // Confirm step modal state
+
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // Fetch real seeded tasks, categories, and pre-selected tasks from the backend
+
   const loadData = useCallback(async () => {
     setLoading(true);
     setServerError(null);
@@ -86,7 +86,7 @@ export default function TasksScreen() {
     loadData();
   }, [loadData]);
 
-  // Filter tasks dynamically based on search query
+
   const filteredTasks = useMemo(() => {
     const term = searchQuery.trim().toLowerCase();
     if (!term) return tasks;
@@ -98,7 +98,6 @@ export default function TasksScreen() {
     );
   }, [tasks, searchQuery]);
 
-  // Group backend tasks by their database category
   const groupedTasks = useMemo(() => {
     const groups: Record<string, Task[]> = {};
     for (const cat of categories) {
@@ -111,7 +110,7 @@ export default function TasksScreen() {
     return groups;
   }, [filteredTasks, categories]);
 
-  // Real selected Task objects from database for confirmation
+ 
   const selectedTaskList = useMemo(() => {
     return tasks.filter((t) => selectedIds.has(t.id));
   }, [tasks, selectedIds]);
@@ -158,12 +157,10 @@ export default function TasksScreen() {
     }
   };
 
-  // 1. Full-screen Loading State
   if (loading) {
     return <LoadingScreen message="Loading catalogue from database..." />;
   }
 
-  // 2. Full-screen Error State when initial load fails (No dead end: Retry & Go Back)
   if (serverError && tasks.length === 0) {
     return (
       <ErrorScreen
@@ -182,7 +179,6 @@ export default function TasksScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Navigation & Header */}
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -198,10 +194,7 @@ export default function TasksScreen() {
           </Text>
         </View>
 
-        {/* Server Error Banner */}
         <ErrorBanner message={serverError} onDismiss={() => setServerError(null)} />
-
-        {/* Real-time Task Search Bar */}
         <View style={styles.searchBox}>
           <TextInput
             style={styles.searchInput}
@@ -217,8 +210,6 @@ export default function TasksScreen() {
             </TouchableOpacity>
           )}
         </View>
-
-        {/* Category Accordion Cards or Empty Search Result State */}
         {filteredTasks.length === 0 ? (
           <EmptyState
             icon="🔍"
@@ -247,10 +238,9 @@ export default function TasksScreen() {
                     isExpanded && styles.cardWrapperExpanded,
                   ]}
                 >
-                  {/* Gold left indicator bar for active category */}
+                
                   {isExpanded && <View style={styles.goldIndicator} />}
 
-                  {/* Category Header (Tap to expand/collapse) */}
                   <TouchableOpacity
                     activeOpacity={0.8}
                     style={styles.categoryHeader}
@@ -282,8 +272,6 @@ export default function TasksScreen() {
                       </View>
                     )}
                   </TouchableOpacity>
-
-                  {/* Real Database Services List */}
                   {isExpanded && (
                     <View style={styles.expandedContent}>
                       <Text style={styles.subSectionLabel}>CHOOSE SERVICES</Text>
@@ -305,7 +293,6 @@ export default function TasksScreen() {
           </ScrollView>
         )}
 
-        {/* Bottom Floating Bar */}
         <View style={styles.bottomBar}>
           <Button
             title={selectedIds.size > 0 ? `Continue (${selectedIds.size} selected)` : 'Continue'}
@@ -315,7 +302,6 @@ export default function TasksScreen() {
         </View>
       </View>
 
-      {/* Confirmation Step Modal */}
       <ConfirmTasksModal
         visible={showConfirmModal}
         selectedTasks={selectedTaskList}

@@ -49,7 +49,7 @@ take-home assignment.
 - Avoid exposing sensitive information in errors or logs.
 
 
-<!-- ## Authentication and Security
+## Authentication and Security
 - Only verified users can log in.
 - OTPs must be securely generated and stored as hashes.
 - OTPs expire after 10 minutes and are single-use.
@@ -63,7 +63,7 @@ take-home assignment.
 - Add tests for OTP generation, expiry and attempt limits.
 - Test login restrictions for unverified users.
 - Test important API validation and failure cases.
-- Run tests and TypeScript checks after meaningful changes. -->
+- Run tests and TypeScript checks after meaningful changes.
 
 ## Assignment Requirements
 - Support registration and email verification.

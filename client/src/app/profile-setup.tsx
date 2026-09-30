@@ -40,7 +40,6 @@ export default function ProfileSetupScreen() {
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  // Pre-fill existing user info if available from registration
   useEffect(() => {
     getUserData<User>().then((user) => {
       if (user?.name) setName(user.name);
@@ -50,7 +49,7 @@ export default function ProfileSetupScreen() {
     });
   }, []);
 
-  // Real-time inline validations
+
   const nameError = touched.name ? validateName(name, true) : null;
   const phoneError = touched.phone ? validateIndianPhone(phone) : null;
   const addressError = touched.address ? validateAddress(address) : null;
@@ -84,10 +83,8 @@ export default function ProfileSetupScreen() {
         }),
       });
 
-      // Update persisted user object with completed profile details
       await saveUserData(response.data);
 
-      // Successfully saved first-login profile -> proceed to task selection
       router.replace('/tasks');
     } catch (error) {
       if (error instanceof ApiError) {
@@ -111,7 +108,6 @@ export default function ProfileSetupScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Back Navigation */}
           <TouchableOpacity
             style={CommonStyles.backButton}
             onPress={() => {
@@ -125,16 +121,12 @@ export default function ProfileSetupScreen() {
           >
             <Text style={CommonStyles.backButtonText}>‹ Back</Text>
           </TouchableOpacity>
-
-          {/* Header section styled exactly after the reference image */}
           <View style={CommonStyles.header}>
             <Text style={CommonStyles.title}>A few details</Text>
             <Text style={CommonStyles.subtitle}>
               Please provide your contact details so we can coordinate visits and deliveries smoothly.
             </Text>
           </View>
-
-          {/* Server Error Banner */}
           <ErrorBanner message={serverError} onDismiss={() => setServerError(null)} />
 
           {/* Form Fields */}

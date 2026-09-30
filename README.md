@@ -77,76 +77,51 @@ Never commit `.env` files or real secrets to version control.
 
 ---
 
-## How to Run the Mobile App
+## Running the Mobile App (Two Options)
 
-1. Navigate to the `client/` folder and install dependencies:
+### Option 1: Run with Expo (Development)
+
+1. **Install dependencies and setup environment**:
    ```bash
    cd client
    pnpm install
-   ```
-
-2. Copy the environment configuration:
-   ```bash
-   copy .env.example .env     # On Windows
+   copy .env.example .env     # On Windows (cmd)
    # cp .env.example .env     # On macOS / Linux
    ```
 
-3. Start the Expo development server:
+2. **Start the Expo development server**:
    ```bash
    pnpm start
    ```
 
-4. Press **`a`** in the terminal to launch the app inside the running Android emulator.
+3. **Launch the app**:
+   - **On Android Emulator**: Press **`a`** in the terminal to launch automatically on your running emulator.
+   - **On Physical Device (Expo Go)**:
+     1. Install the free **Expo Go** app from the Google Play Store (Android) or App Store (iOS).
+     2. Ensure your phone and computer are on the same Wi-Fi network.
+     3. Scan the QR code displayed in your terminal with your phone camera or Expo Go.
 
 ---
 
-## How to Build the APK
+### Option 2: Standalone Android APK
 
-### Method 1: Local Build (Gradle & Android SDK)
-Requires Android Studio and Java JDK 17 installed locally.
+If you prefer testing the standalone native app without Expo CLI:
 
-1. Generate the native Android project files:
-   ```bash
-   cd client
-   npx expo prebuild --platform android
-   ```
+1. **Install Pre-built APK**:
+   - Download the submitted `taskify.apk` (from GitHub Releases / submission link).
+   - Install directly on an Android device or drag-and-drop into an Android emulator.
 
-2. Build the standalone APK:
-   - **Debug APK** (fast, unsigned, installable directly):
+2. **Build Your Own APK (EAS Cloud Build)**:
+   - Install the EAS CLI:
      ```bash
-     cd android
-     ./gradlew assembleDebug      # Linux / macOS
-     gradlew assembleDebug        # Windows
+     npm install -g eas-cli
      ```
-     Output APK: `client/android/app/build/outputs/apk/debug/app-debug.apk`
-
-   - **Release APK**:
+   - Build the standalone `.apk`:
      ```bash
-     cd android
-     ./gradlew assembleRelease    # Linux / macOS
-     gradlew assembleRelease      # Windows
+     cd client
+     eas build --platform android --profile preview
      ```
-     Output APK: `client/android/app/build/outputs/apk/release/app-release.apk`
-
-3. Install on a connected Android device or emulator:
-   ```bash
-   adb install android/app/build/outputs/apk/debug/app-debug.apk
-   ```
-
-### Method 2: Cloud Build (EAS CLI)
-Builds an installable APK in the cloud without needing local Android SDK:
-
-1. Install EAS CLI:
-   ```bash
-   npm install -g eas-cli
-   ```
-
-2. Run the preview build:
-   ```bash
-   cd client
-   eas build --platform android --profile preview
-   ```
-   EAS will generate a direct download link and QR code for the `.apk`.
+   - EAS will generate a direct download link and QR code to install the `.apk` on any device.
 
 ---
 

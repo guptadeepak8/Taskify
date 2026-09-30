@@ -25,14 +25,11 @@ import {
 
 export default function RegisterScreen() {
   const router = useRouter();
-
-  // Form states
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Field touched states for inline validation
   const [touched, setTouched] = useState({
     name: false,
     email: false,
@@ -40,11 +37,9 @@ export default function RegisterScreen() {
     confirmPassword: false,
   });
 
-  // UI status
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  // Compute inline validation errors
   const nameError = touched.name ? validateName(name) : null;
   const emailError = touched.email ? validateEmail(email) : null;
   const passwordError = touched.password ? validatePassword(password) : null;
@@ -64,8 +59,6 @@ export default function RegisterScreen() {
       password: true,
       confirmPassword: true,
     });
-
-    // Check all validations
     const nErr = validateName(name);
     const eErr = validateEmail(email);
     const pErr = validatePassword(password);
@@ -87,8 +80,6 @@ export default function RegisterScreen() {
           name: name.trim() || undefined,
         }),
       });
-
-      // On successful registration, route to OTP verification screen
       router.push({
         pathname: '/verify-otp',
         params: { email: email.trim().toLowerCase() },
@@ -115,7 +106,7 @@ export default function RegisterScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Header section styled after the reference design */}
+
           <View style={styles.header}>
             <Text style={styles.badge}>Get Started</Text>
             <Text style={styles.title}>Create your account</Text>
@@ -124,10 +115,7 @@ export default function RegisterScreen() {
             </Text>
           </View>
 
-          {/* Server Error Banner */}
           <ErrorBanner message={serverError} onDismiss={() => setServerError(null)} />
-
-          {/* Form Fields */}
           <View style={styles.form}>
             <Input
               label="Full name (optional)"
@@ -183,7 +171,6 @@ export default function RegisterScreen() {
               isPassword
             />
 
-            {/* Primary Action Button (Sage Green from Reference Image) */}
             <View style={styles.actionContainer}>
               <Button
                 title="Create account"
