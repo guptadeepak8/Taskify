@@ -13,12 +13,14 @@ export interface InputProps extends TextInputProps {
   label: string;
   error?: string | null;
   isPassword?: boolean;
+  prefix?: string;
 }
 
 export function Input({
   label,
   error,
   isPassword = false,
+  prefix,
   value,
   onChangeText,
   placeholder,
@@ -39,6 +41,7 @@ export function Input({
           hasError && styles.inputError,
         ]}
       >
+        {prefix ? <Text style={styles.prefixText}>{prefix}</Text> : null}
         <TextInput
           style={styles.input}
           value={value}
@@ -105,6 +108,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.text,
     height: '100%',
+  },
+  prefixText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.text,
+    marginRight: 8,
   },
   toggleBtn: {
     paddingLeft: 10,

@@ -6,14 +6,17 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  ActivityIndicator,
-  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing, BorderRadius } from '../constants/theme';
 import { Button } from '../components/ui/Button';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
+import { LoadingScreen } from '../components/ui/LoadingScreen';
+import { ErrorScreen } from '../components/ui/ErrorScreen';
+import { EmptyState } from '../components/ui/EmptyState';
+import { TaskCard } from '../components/tasks/TaskCard';
+import { ConfirmTasksModal } from '../components/tasks/ConfirmTasksModal';
 import { apiRequest, ApiError } from '../utils/api';
 import { Task } from '../types';
 
@@ -161,36 +164,22 @@ export default function TasksScreen() {
 
   // 1. Full-screen Loading State
   if (loading) {
-    return (
-      <SafeAreaView style={styles.stateContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading catalogue from database...</Text>
-      </SafeAreaView>
-    );
+    return <LoadingScreen message="Loading catalogue from database..." />;
   }
 
   // 2. Full-screen Error State when initial load fails (No dead end: Retry & Go Back)
   if (serverError && tasks.length === 0) {
     return (
-      <SafeAreaView style={styles.stateContainer}>
-        <View style={styles.stateCard}>
-          <Text style={styles.stateIcon}>⚠️</Text>
-          <Text style={styles.stateTitle}>Failed to Load Catalogue</Text>
-          <Text style={styles.stateSubtitle}>{serverError}</Text>
-          <Button
-            title="Retry Connection"
-            onPress={loadData}
-            style={{ width: '100%', marginTop: Spacing.md }}
-          />
-          <TouchableOpacity
-            style={styles.stateSecondaryBtn}
-            onPress={() => router.back()}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={styles.stateSecondaryText}>‹ Go Back</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+      <ErrorScreen
+        title="Failed to Load Catalogue"
+        message={serverError}
+        onRetry={loadData}
+        retryText="Retry Connection"
+        secondaryAction={{
+          label: '‹ Go Back',
+          onPress: () => router.back(),
+        }}
+      />
     );
   }
 
@@ -235,129 +224,89 @@ export default function TasksScreen() {
 
         {/* Category Accordion Cards or Empty Search Result State */}
         {filteredTasks.length === 0 ? (
-          <View style={styles.emptySearchContainer}>
-            <Text style={styles.emptyIcon}>🔍</Text>
-            <Text style={styles.emptyTitle}>No services found</Text>
-            <Text style={styles.emptySubtitle}>
-              We couldn't find any tasks matching "{searchQuery}". Try a different keyword or clear your search to view all categories.
-            </Text>
-            <Button
-              title="Clear Search"
-              variant="outline"
-              onPress={() => setSearchQuery('')}
-              style={{ marginTop: Spacing.md }}
-            />
-          </View>
+          <EmptyState
+            icon="🔍"
+            title="No services found"
+            subtitle={`We couldn't find any tasks matching "${searchQuery}". Try a different keyword or clear your search to view all categories.`}
+            actionText="Clear Search"
+            actionVariant="outline"
+            onAction={() => setSearchQuery('')}
+          />
         ) : (
           <ScrollView
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
           >
-          {categories.map((category) => {
-            const isExpanded = expandedCategory === category || searchQuery.trim().length > 0;
-            const categoryTasks = groupedTasks[category] || [];
-            const icon = CATEGORY_ICONS[category] || '📋';
-            const selectedInCatCount = categoryTasks.filter((t) => selectedIds.has(t.id)).length;
+            {categories.map((category) => {
+              const isExpanded = expandedCategory === category || searchQuery.trim().length > 0;
+              const categoryTasks = groupedTasks[category] || [];
+              const icon = CATEGORY_ICONS[category] || '📋';
+              const selectedInCatCount = categoryTasks.filter((t) => selectedIds.has(t.id)).length;
 
-            return (
-              <View
-                key={category}
-                style={[
-                  styles.cardWrapper,
-                  isExpanded && styles.cardWrapperExpanded,
-                ]}
-              >
-                {/* Gold left indicator bar for active category */}
-                {isExpanded && <View style={styles.goldIndicator} />}
-
-                {/* Category Header (Tap to expand/collapse) */}
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  style={styles.categoryHeader}
-                  onPress={() =>
-                    setExpandedCategory((prev) => (prev === category ? null : category))
-                  }
+              return (
+                <View
+                  key={category}
+                  style={[
+                    styles.cardWrapper,
+                    isExpanded && styles.cardWrapperExpanded,
+                  ]}
                 >
-                  <View
-                    style={[
-                      styles.iconBox,
-                      isExpanded && styles.iconBoxActive,
-                    ]}
+                  {/* Gold left indicator bar for active category */}
+                  {isExpanded && <View style={styles.goldIndicator} />}
+
+                  {/* Category Header (Tap to expand/collapse) */}
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    style={styles.categoryHeader}
+                    onPress={() =>
+                      setExpandedCategory((prev) => (prev === category ? null : category))
+                    }
                   >
-                    <Text style={styles.iconText}>
-                      {selectedInCatCount > 0 ? '✓' : icon}
-                    </Text>
-                  </View>
+                    <View
+                      style={[
+                        styles.iconBox,
+                        isExpanded && styles.iconBoxActive,
+                      ]}
+                    >
+                      <Text style={styles.iconText}>
+                        {selectedInCatCount > 0 ? '✓' : icon}
+                      </Text>
+                    </View>
 
-                  <View style={styles.categoryTitleWrapper}>
-                    <Text style={styles.categoryName}>{category}</Text>
-                    <Text style={styles.categorySubtitle}>
-                      {categoryTasks.length} services available
-                    </Text>
-                  </View>
+                    <View style={styles.categoryTitleWrapper}>
+                      <Text style={styles.categoryName}>{category}</Text>
+                      <Text style={styles.categorySubtitle}>
+                        {categoryTasks.length} services available
+                      </Text>
+                    </View>
 
-                  {selectedInCatCount > 0 && (
-                    <View style={styles.catSelectedBadge}>
-                      <Text style={styles.catSelectedBadgeText}>{selectedInCatCount}</Text>
+                    {selectedInCatCount > 0 && (
+                      <View style={styles.catSelectedBadge}>
+                        <Text style={styles.catSelectedBadgeText}>{selectedInCatCount}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+
+                  {/* Real Database Services List */}
+                  {isExpanded && (
+                    <View style={styles.expandedContent}>
+                      <Text style={styles.subSectionLabel}>CHOOSE SERVICES</Text>
+                      <View style={styles.serviceCardsContainer}>
+                        {categoryTasks.map((task) => (
+                          <TaskCard
+                            key={task.id}
+                            task={task}
+                            isSelected={selectedIds.has(task.id)}
+                            onToggle={toggleTask}
+                          />
+                        ))}
+                      </View>
                     </View>
                   )}
-                </TouchableOpacity>
-
-                {/* Real Database Services List */}
-                {isExpanded && (
-                  <View style={styles.expandedContent}>
-                    <Text style={styles.subSectionLabel}>CHOOSE SERVICES</Text>
-                    <View style={styles.serviceCardsContainer}>
-                      {categoryTasks.map((task) => {
-                        const isSelected = selectedIds.has(task.id);
-                        return (
-                          <TouchableOpacity
-                            key={task.id}
-                            activeOpacity={0.7}
-                            style={[
-                              styles.serviceCard,
-                              isSelected && styles.serviceCardSelected,
-                            ]}
-                            onPress={() => toggleTask(task.id)}
-                          >
-                            <View style={styles.serviceCardHeader}>
-                              <Text
-                                style={[
-                                  styles.serviceCardTitle,
-                                  isSelected && styles.serviceCardTitleSelected,
-                                ]}
-                              >
-                                {task.name}
-                              </Text>
-
-                              <View
-                                style={[
-                                  styles.checkbox,
-                                  isSelected && styles.checkboxSelected,
-                                ]}
-                              >
-                                {isSelected && <Text style={styles.checkmark}>✓</Text>}
-                              </View>
-                            </View>
-
-                            <Text
-                              style={[
-                                styles.serviceCardDesc,
-                                isSelected && styles.serviceCardDescSelected,
-                              ]}
-                            >
-                              {task.description}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  </View>
-                )}
-              </View>
-            );
-          })}
-        </ScrollView>
+                </View>
+              );
+            })}
+          </ScrollView>
         )}
 
         {/* Bottom Floating Bar */}
@@ -371,50 +320,13 @@ export default function TasksScreen() {
       </View>
 
       {/* Confirmation Step Modal */}
-      <Modal
+      <ConfirmTasksModal
         visible={showConfirmModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowConfirmModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.badge}>Confirm Selection</Text>
-              <Text style={styles.modalTitle}>Confirm your services</Text>
-              <Text style={styles.modalSubtitle}>
-                You have selected {selectedTaskList.length} service(s) from our catalogue:
-              </Text>
-            </View>
-
-            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-              {selectedTaskList.map((t) => (
-                <View key={t.id} style={styles.confirmItemCard}>
-                  <Text style={styles.confirmItemCategory}>{t.category}</Text>
-                  <Text style={styles.confirmItemName}>{t.name}</Text>
-                  <Text style={styles.confirmItemDesc}>{t.description}</Text>
-                </View>
-              ))}
-            </ScrollView>
-
-            <View style={styles.modalActions}>
-              <Button
-                title="Confirm & Save"
-                loading={saving}
-                loadingText="Saving..."
-                onPress={handleSaveConfirmed}
-              />
-              <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={() => setShowConfirmModal(false)}
-                disabled={saving}
-              >
-                <Text style={styles.modalCancelText}>Modify selection</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        selectedTasks={selectedTaskList}
+        saving={saving}
+        onConfirm={handleSaveConfirmed}
+        onCancel={() => setShowConfirmModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -426,91 +338,6 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: Colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stateContainer: {
-    flex: 1,
-    backgroundColor: Colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xl,
-  },
-  stateCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    width: '100%',
-    maxWidth: 380,
-  },
-  stateIcon: {
-    fontSize: 42,
-    marginBottom: Spacing.sm,
-  },
-  stateTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.text,
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  stateSubtitle: {
-    fontSize: 14,
-    color: Colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: Spacing.sm,
-  },
-  stateSecondaryBtn: {
-    marginTop: Spacing.sm,
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  stateSecondaryText: {
-    fontSize: 14,
-    color: Colors.primary,
-    fontWeight: '600',
-  },
-  emptySearchContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    marginHorizontal: Spacing.lg,
-    marginVertical: Spacing.md,
-  },
-  emptyIcon: {
-    fontSize: 36,
-    marginBottom: Spacing.xs,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.text,
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    fontSize: 13,
-    color: Colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 19,
-  },
-  loadingText: {
-    marginTop: Spacing.md,
-    fontSize: 15,
-    color: Colors.textMuted,
-    fontWeight: '500',
   },
   header: {
     paddingHorizontal: Spacing.lg,
@@ -580,7 +407,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   cardWrapperExpanded: {
-    backgroundColor: '#EBF5F0', // Soft mint tint from reference image
+    backgroundColor: '#EBF5F0',
     borderColor: Colors.primary,
   },
   goldIndicator: {
@@ -589,7 +416,7 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 4,
-    backgroundColor: Colors.accent, // Golden accent strip from reference image
+    backgroundColor: Colors.accent,
     zIndex: 10,
   },
   categoryHeader: {
@@ -598,29 +425,29 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: BorderRadius.md,
-    backgroundColor: '#E8F5EE',
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: Colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
   },
   iconBoxActive: {
-    backgroundColor: Colors.primary, // Dark forest green when expanded
+    backgroundColor: Colors.primary,
   },
   iconText: {
-    fontSize: 18,
+    fontSize: 20,
     color: '#FFFFFF',
   },
   categoryTitleWrapper: {
     flex: 1,
   },
   categoryName: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
     color: Colors.text,
-    marginBottom: 3,
+    marginBottom: 2,
   },
   categorySubtitle: {
     fontSize: 13,
@@ -628,12 +455,11 @@ const styles = StyleSheet.create({
   },
   catSelectedBadge: {
     backgroundColor: Colors.primary,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    minWidth: 24,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 8,
   },
   catSelectedBadgeText: {
     color: '#FFFFFF',
@@ -648,69 +474,12 @@ const styles = StyleSheet.create({
   subSectionLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.textMuted,
+    color: Colors.accent,
     letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   serviceCardsContainer: {
     gap: 8,
-  },
-  serviceCard: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    borderRadius: BorderRadius.lg,
-    padding: 14,
-  },
-  serviceCardSelected: {
-    backgroundColor: '#FFFFFF',
-    borderColor: Colors.primary,
-    borderWidth: 2,
-  },
-  serviceCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  serviceCardTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.text,
-    flex: 1,
-    marginRight: 10,
-  },
-  serviceCardTitleSelected: {
-    color: Colors.primary,
-    fontWeight: '700',
-  },
-  serviceCardDesc: {
-    fontSize: 13,
-    color: Colors.textMuted,
-    lineHeight: 18,
-  },
-  serviceCardDescSelected: {
-    color: Colors.text,
-  },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  checkboxSelected: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  checkmark: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: 'bold',
   },
   bottomBar: {
     position: 'absolute',
@@ -728,84 +497,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 6,
     elevation: 8,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 30, 46, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContainer: {
-    backgroundColor: Colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '80%',
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.xl,
-  },
-  modalHeader: {
-    marginBottom: Spacing.md,
-  },
-  badge: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.accent,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.text,
-    marginBottom: 4,
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: Colors.textMuted,
-    lineHeight: 20,
-  },
-  modalScroll: {
-    maxHeight: 280,
-    marginVertical: Spacing.md,
-  },
-  confirmItemCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 14,
-    marginBottom: 8,
-  },
-  confirmItemCategory: {
-    fontSize: 11,
-    color: Colors.accent,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    marginBottom: 2,
-  },
-  confirmItemName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.text,
-    marginBottom: 4,
-  },
-  confirmItemDesc: {
-    fontSize: 12,
-    color: Colors.textMuted,
-    lineHeight: 16,
-  },
-  modalActions: {
-    marginTop: Spacing.sm,
-  },
-  modalCancelBtn: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-  },
-  modalCancelText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textMuted,
   },
 });

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
@@ -11,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors, Spacing } from '../constants/theme';
+import { CommonStyles } from '../constants/commonStyles';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
@@ -101,19 +101,19 @@ export default function ProfileSetupScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={CommonStyles.safeArea}>
       <KeyboardAvoidingView
-        style={styles.keyboardView}
+        style={CommonStyles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={CommonStyles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           {/* Back Navigation */}
           <TouchableOpacity
-            style={styles.backButton}
+            style={CommonStyles.backButton}
             onPress={() => {
               if (router.canGoBack()) {
                 router.back();
@@ -123,13 +123,13 @@ export default function ProfileSetupScreen() {
             }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.backButtonText}>‹ Back</Text>
+            <Text style={CommonStyles.backButtonText}>‹ Back</Text>
           </TouchableOpacity>
 
           {/* Header section styled exactly after the reference image */}
-          <View style={styles.header}>
-            <Text style={styles.title}>A few details</Text>
-            <Text style={styles.subtitle}>
+          <View style={CommonStyles.header}>
+            <Text style={CommonStyles.title}>A few details</Text>
+            <Text style={CommonStyles.subtitle}>
               Please provide your contact details so we can coordinate visits and deliveries smoothly.
             </Text>
           </View>
@@ -138,7 +138,7 @@ export default function ProfileSetupScreen() {
           <ErrorBanner message={serverError} onDismiss={() => setServerError(null)} />
 
           {/* Form Fields */}
-          <View style={styles.form}>
+          <View style={CommonStyles.form}>
             <Input
               label="Full name"
               placeholder="e.g. Vikram Singh"
@@ -153,8 +153,8 @@ export default function ProfileSetupScreen() {
             />
 
             <Input
-              label="Indian mobile number"
-              placeholder="e.g. 9876543210"
+              label="Mobile Number"
+              placeholder="98765 43210"
               value={phone}
               onChangeText={(val) => {
                 setPhone(val);
@@ -163,11 +163,13 @@ export default function ProfileSetupScreen() {
               onBlur={() => handleBlur('phone')}
               error={phoneError}
               keyboardType="phone-pad"
+              prefix="+91"
+              maxLength={10}
             />
 
             <Input
               label="Address & area"
-              placeholder="Flat / Building, Area, City"
+              placeholder="Flat / Building, Road, Area, City"
               value={address}
               onChangeText={(val) => {
                 setAddress(val);
@@ -175,7 +177,8 @@ export default function ProfileSetupScreen() {
               }}
               onBlur={() => handleBlur('address')}
               error={addressError}
-              autoCapitalize="sentences"
+              multiline
+              numberOfLines={2}
             />
 
             <Input
@@ -189,8 +192,8 @@ export default function ProfileSetupScreen() {
               autoCapitalize="words"
             />
 
-            {/* Primary Action Button (Matches "Saving..." state in reference image) */}
-            <View style={styles.actionContainer}>
+            {/* Primary Action Button */}
+            <View style={CommonStyles.actionContainer}>
               <Button
                 title="Save details"
                 loading={loading}
@@ -217,57 +220,3 @@ export default function ProfileSetupScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.xxl,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-    marginBottom: Spacing.md,
-    paddingVertical: 4,
-  },
-  backButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  header: {
-    marginBottom: Spacing.xl,
-  },
-  badge: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.accent,
-    marginBottom: Spacing.sm,
-    letterSpacing: 0.3,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: Colors.text,
-    marginBottom: Spacing.sm,
-    letterSpacing: -0.4,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: Colors.textMuted,
-    lineHeight: 22,
-  },
-  form: {
-    width: '100%',
-  },
-  actionContainer: {
-    marginTop: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-});

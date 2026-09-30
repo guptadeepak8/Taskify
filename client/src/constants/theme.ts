@@ -38,3 +38,62 @@ export const BorderRadius = {
   xl: 16,
   full: 9999,
 };
+
+export const Typography = {
+  h1: {
+    fontSize: 28,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    letterSpacing: -0.4,
+  },
+  h2: {
+    fontSize: 22,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    letterSpacing: -0.3,
+  },
+  h3: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    letterSpacing: -0.2,
+  },
+  body: {
+    fontSize: 14,
+    color: Colors.text,
+    lineHeight: 20,
+  },
+  bodyMuted: {
+    fontSize: 14,
+    color: Colors.textMuted,
+    lineHeight: 20,
+  },
+  caption: {
+    fontSize: 12,
+    color: Colors.textMuted,
+  },
+};
+
+export const Shadows = {
+  sm: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  md: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  lg: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+};
