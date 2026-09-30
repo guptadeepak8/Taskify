@@ -17,10 +17,12 @@ import { Button } from '../components/ui/Button';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { apiRequest, ApiError } from '../utils/api';
 import { saveToken, saveUserData } from '../utils/storage';
+import { useQueryClient } from '@tanstack/react-query';
 import { VerifyOtpResponse } from '../types';
 
 export default function VerifyOtpScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const params = useLocalSearchParams<{ email?: string; reason?: string }>();
   const email = (params.email || '').trim().toLowerCase();
 
@@ -34,7 +36,6 @@ export default function VerifyOtpScreen() {
       : null
   );
 
-  // 30-second live resend countdown
   const [countdown, setCountdown] = useState(30);
   const inputRef = useRef<TextInput>(null);
 
@@ -47,7 +48,6 @@ export default function VerifyOtpScreen() {
   }, [countdown]);
 
   const handleOtpChange = (text: string) => {
-    // Only accept numeric digits up to 6
     const cleaned = text.replace(/[^0-9]/g, '').slice(0, 6);
     setOtp(cleaned);
     if (serverError) setServerError(null);
@@ -76,11 +76,11 @@ export default function VerifyOtpScreen() {
 
       const { token, user } = response.data;
 
-      // Save token and session
+      queryClient.clear();
       await saveToken(token);
       await saveUserData(user);
+      queryClient.setQueryData(['userProfile'], user);
 
-      // On successful first verification, direct straight to Profile Setup
       router.replace('/profile-setup');
     } catch (error) {
       if (error instanceof ApiError) {
@@ -134,7 +134,6 @@ export default function VerifyOtpScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Header section styled after the reference design */}
           <View style={styles.header}>
             <Text style={styles.badge}>Email Verification</Text>
             <Text style={styles.title}>Enter 6-digit code</Text>
@@ -145,17 +144,14 @@ export default function VerifyOtpScreen() {
             </Text>
           </View>
 
-          {/* Success Banner */}
           {successMessage && (
             <View style={styles.successBanner}>
               <Text style={styles.successText}>{successMessage}</Text>
             </View>
           )}
 
-          {/* Error Banner */}
           <ErrorBanner message={serverError} onDismiss={() => setServerError(null)} />
 
-          {/* 6-Box OTP Visual Display */}
           <Pressable style={styles.otpContainer} onPress={() => inputRef.current?.focus()}>
             {[0, 1, 2, 3, 4, 5].map((index) => {
               const digit = otp[index] || '';
@@ -179,7 +175,6 @@ export default function VerifyOtpScreen() {
             })}
           </Pressable>
 
-          {/* Hidden real input capturing keyboard and paste */}
           <TextInput
             ref={inputRef}
             style={styles.hiddenInput}
@@ -196,7 +191,6 @@ export default function VerifyOtpScreen() {
             autoFocus
           />
 
-          {/* Action Button */}
           <View style={styles.actionContainer}>
             <Button
               title="Verify & Continue"
@@ -207,7 +201,6 @@ export default function VerifyOtpScreen() {
             />
           </View>
 
-          {/* Resend Countdown & Action */}
           <View style={styles.resendContainer}>
             {countdown > 0 ? (
               <Text style={styles.countdownText}>
@@ -226,7 +219,6 @@ export default function VerifyOtpScreen() {
             )}
           </View>
 
-          {/* Back to Login */}
           <View style={styles.footerLinkContainer}>
             <TouchableOpacity
               onPress={() => router.replace('/login')}

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,10 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Colors, Spacing, BorderRadius } from '../constants/theme';
-import { LoadingScreen } from '../components/ui/LoadingScreen';
+import { HomeSkeleton } from '../components/ui/Skeleton';
 import { ErrorScreen } from '../components/ui/ErrorScreen';
 import { EmptyState } from '../components/ui/EmptyState';
 import { SelectedTaskCard } from '../components/home/SelectedTaskCard';
@@ -20,58 +21,75 @@ import { User, Task } from '../types';
 
 export default function HomeScreen() {
   const router = useRouter();
-
-  const [user, setUser] = useState<User | null>(null);
-  const [selectedTasks, setSelectedTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [showProfileModal, setShowProfileModal] = useState(false);
 
-  const loadData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [cachedUser, tasksRes] = await Promise.all([
-        getUserData<User>(),
-        apiRequest<Task[]>('/tasks/selected'),
-      ]);
+  const { data: user } = useQuery<User | null>({
+    queryKey: ['userProfile'],
+    queryFn: async () => {
+      const u = await getUserData<User>();
+      return u || null;
+    },
+  });
 
-      if (cachedUser) setUser(cachedUser);
-      setSelectedTasks(tasksRes.data || []);
-    } catch (e: any) {
-      if (e?.code === 'UNAUTHORIZED' || e?.status === 401) {
-        await clearAuthSession();
-        router.replace('/login');
-        return;
+  const {
+    data: selectedTasks = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery<Task[]>({
+    queryKey: ['selectedTasks'],
+    queryFn: async () => {
+      try {
+        const res = await apiRequest<Task[]>('/tasks/selected');
+        return res.data || [];
+      } catch (err: any) {
+        if (err?.code === 'UNAUTHORIZED' || err?.status === 401) {
+          queryClient.clear();
+          await clearAuthSession();
+          router.replace('/login');
+          return [];
+        }
+        throw err;
       }
-      setError(e?.message || 'Unable to connect to the server. Please check your internet connection.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+  });
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [])
-  );
+  const removeTaskMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      await apiRequest(`/tasks/selected/${taskId}`, { method: 'DELETE' });
+      return taskId;
+    },
+    onMutate: async (taskId: string) => {
+      await queryClient.cancelQueries({ queryKey: ['selectedTasks'] });
+      const previousTasks = queryClient.getQueryData<Task[]>(['selectedTasks']) || [];
+      queryClient.setQueryData<Task[]>(['selectedTasks'], (old = []) =>
+        old.filter((t) => t.id !== taskId)
+      );
+      return { previousTasks };
+    },
+    onError: (_err, _taskId, context) => {
+      if (context?.previousTasks) {
+        queryClient.setQueryData(['selectedTasks'], context.previousTasks);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['selectedTasks'] });
+    },
+  });
 
   const handleLogout = async () => {
     setShowProfileModal(false);
+    queryClient.clear();
     await clearAuthSession();
     router.replace('/login');
   };
 
-  const handleRemoveTask = async (taskId: string) => {
-    setSelectedTasks((prev) => prev.filter((t) => t.id !== taskId));
-    try {
-      await apiRequest(`/tasks/selected/${taskId}`, { method: 'DELETE' });
-    } catch {
-      loadData();
-    }
+  const handleRemoveTask = (taskId: string) => {
+    removeTaskMutation.mutate(taskId);
   };
 
-  // Group selected tasks by category
   const groupedSelected = useMemo(() => {
     const map: Record<string, Task[]> = {};
     for (const task of selectedTasks) {
@@ -83,18 +101,16 @@ export default function HomeScreen() {
 
   const userInitial = user?.name ? user.name.trim().charAt(0).toUpperCase() : 'U';
 
-  // 1. Loading State
-  if (loading) {
-    return <LoadingScreen message="Loading your services..." />;
+  if (isLoading && selectedTasks.length === 0) {
+    return <HomeSkeleton />;
   }
 
-  // 2. Error State (No dead end: Try Again & Sign Out)
-  if (error) {
+  if (isError && selectedTasks.length === 0) {
     return (
       <ErrorScreen
         title="Unable to Load Services"
-        message={error}
-        onRetry={loadData}
+        message={(error as Error)?.message || 'Unable to connect to the server. Please check your internet connection.'}
+        onRetry={() => refetch()}
         retryText="Try Again"
         secondaryAction={{
           label: 'Sign Out',
@@ -106,14 +122,12 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Top Bar with Brand & Profile Icon */}
       <View style={styles.topBar}>
         <View>
           <Text style={styles.brandTitle}>Taskify</Text>
           <Text style={styles.brandSubtitle}>Home & Local Services</Text>
         </View>
 
-        {/* Right Corner Profile Icon Button */}
         <TouchableOpacity
           style={styles.profileIconButton}
           onPress={() => setShowProfileModal(true)}
@@ -128,7 +142,6 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Section Header with + Add Tasks */}
         <View style={styles.sectionHeader}>
           <View>
             <Text style={styles.sectionTitle}>Your Selected Tasks</Text>
@@ -147,7 +160,6 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Task List or Empty State */}
         {selectedTasks.length === 0 ? (
           <EmptyState
             icon="📋"
@@ -172,14 +184,16 @@ export default function HomeScreen() {
         )}
       </ScrollView>
 
-      {/* Profile & Account Modal */}
       <ProfileModal
         visible={showProfileModal}
-        user={user}
+        user={user ?? null}
         onClose={() => setShowProfileModal(false)}
         onEditProfile={() => {
           setShowProfileModal(false);
-          router.push('/profile-setup');
+          router.push({
+            pathname: '/profile-setup',
+            params: { from: 'home' },
+          });
         }}
         onSignOut={handleLogout}
       />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Colors, Spacing, BorderRadius } from '../constants/theme';
 import { Button } from '../components/ui/Button';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
-import { LoadingScreen } from '../components/ui/LoadingScreen';
+import { TasksSkeleton } from '../components/ui/Skeleton';
 import { ErrorScreen } from '../components/ui/ErrorScreen';
 import { EmptyState } from '../components/ui/EmptyState';
 import { TaskCard } from '../components/tasks/TaskCard';
@@ -20,7 +21,6 @@ import { ConfirmTasksModal } from '../components/tasks/ConfirmTasksModal';
 import { apiRequest, ApiError } from '../utils/api';
 import { Task } from '../types';
 
-// Category icons for visual styling
 const CATEGORY_ICONS: Record<string, string> = {
   'Home Services': '🏠',
   'Errands & Daily Tasks': '📦',
@@ -30,62 +30,80 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 export default function TasksScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [categories, setCategories] = useState<string[]>([]);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
-
-
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [hasInitializedSelection, setHasInitializedSelection] = useState(false);
 
+  const {
+    data: tasks = [],
+    isLoading: isTasksLoading,
+    isError: isTasksError,
+    error: tasksError,
+    refetch: refetchTasks,
+  } = useQuery<Task[]>({
+    queryKey: ['catalogueTasks'],
+    queryFn: async () => {
+      const res = await apiRequest<Task[]>('/tasks');
+      return res.data || [];
+    },
+  });
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setServerError(null);
+  const { data: categories = [], isLoading: isCategoriesLoading } = useQuery<string[]>({
+    queryKey: ['catalogueCategories'],
+    queryFn: async () => {
+      const res = await apiRequest<string[]>('/tasks/categories');
+      return res.data || [];
+    },
+  });
 
-    try {
-      const [allTasksRes, categoriesRes, selectedRes] = await Promise.all([
-        apiRequest<Task[]>('/tasks'),
-        apiRequest<string[]>('/tasks/categories'),
-        apiRequest<Task[]>('/tasks/selected').catch(() => ({ data: [] })),
-      ]);
+  const { data: serverSelected = [] } = useQuery<Task[]>({
+    queryKey: ['selectedTasks'],
+    queryFn: async () => {
+      const res = await apiRequest<Task[]>('/tasks/selected');
+      return res.data || [];
+    },
+  });
 
-      const fetchedTasks = allTasksRes.data || [];
-      const fetchedCategories = categoriesRes.data || [];
+  if (!hasInitializedSelection && serverSelected.length > 0) {
+    const preSelected = new Set(serverSelected.map((t) => t.id));
+    setSelectedIds(preSelected);
 
-      setTasks(fetchedTasks);
-      setCategories(fetchedCategories);
-
-      if (selectedRes?.data && Array.isArray(selectedRes.data) && selectedRes.data.length > 0) {
-        const preSelected = new Set(selectedRes.data.map((t) => t.id));
-        setSelectedIds(preSelected);
-
-        const firstPickedTask = fetchedTasks.find((t) => preSelected.has(t.id));
-        if (firstPickedTask) {
-          setExpandedCategory(firstPickedTask.category);
-        }
+    if (!expandedCategory && tasks.length > 0) {
+      const firstPicked = tasks.find((t) => preSelected.has(t.id));
+      if (firstPicked) {
+        setExpandedCategory(firstPicked.category);
       }
-    } catch (error) {
+    }
+    setHasInitializedSelection(true);
+  }
+
+  const saveMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const res = await apiRequest<Task[]>('/tasks/select', {
+        method: 'POST',
+        body: JSON.stringify({ taskIds: ids }),
+      });
+      return res.data || [];
+    },
+    onSuccess: (updatedTasks) => {
+      queryClient.setQueryData(['selectedTasks'], updatedTasks);
+      setShowConfirmModal(false);
+      router.replace('/home');
+    },
+    onError: (error) => {
       if (error instanceof ApiError) {
         setServerError(error.message);
       } else {
-        setServerError('Failed to load services. Please check your internet connection.');
+        setServerError('Failed to save selected services. Please try again.');
       }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
+      setShowConfirmModal(false);
+    },
+  });
 
   const filteredTasks = useMemo(() => {
     const term = searchQuery.trim().toLowerCase();
@@ -110,7 +128,6 @@ export default function TasksScreen() {
     return groups;
   }, [filteredTasks, categories]);
 
- 
   const selectedTaskList = useMemo(() => {
     return tasks.filter((t) => selectedIds.has(t.id));
   }, [tasks, selectedIds]);
@@ -127,46 +144,26 @@ export default function TasksScreen() {
     });
   };
 
-  const handleSaveConfirmed = async () => {
+  const handleSaveConfirmed = () => {
     if (selectedIds.size === 0) {
       setServerError('Please select at least one service before continuing.');
       setShowConfirmModal(false);
       return;
     }
-
-    setSaving(true);
     setServerError(null);
-
-    try {
-      await apiRequest<Task[]>('/tasks/select', {
-        method: 'POST',
-        body: JSON.stringify({ taskIds: Array.from(selectedIds) }),
-      });
-
-      setShowConfirmModal(false);
-      router.replace('/home');
-    } catch (error) {
-      if (error instanceof ApiError) {
-        setServerError(error.message);
-      } else {
-        setServerError('Failed to save selected services. Please try again.');
-      }
-      setShowConfirmModal(false);
-    } finally {
-      setSaving(false);
-    }
+    saveMutation.mutate(Array.from(selectedIds));
   };
 
-  if (loading) {
-    return <LoadingScreen message="Loading catalogue from database..." />;
+  if ((isTasksLoading || isCategoriesLoading) && tasks.length === 0) {
+    return <TasksSkeleton />;
   }
 
-  if (serverError && tasks.length === 0) {
+  if (isTasksError && tasks.length === 0) {
     return (
       <ErrorScreen
         title="Failed to Load Catalogue"
-        message={serverError}
-        onRetry={loadData}
+        message={(tasksError as Error)?.message || 'Failed to load services. Please check your internet connection.'}
+        onRetry={() => refetchTasks()}
         retryText="Retry Connection"
         secondaryAction={{
           label: '‹ Go Back',
@@ -238,7 +235,6 @@ export default function TasksScreen() {
                     isExpanded && styles.cardWrapperExpanded,
                   ]}
                 >
-                
                   {isExpanded && <View style={styles.goldIndicator} />}
 
                   <TouchableOpacity
@@ -297,6 +293,8 @@ export default function TasksScreen() {
           <Button
             title={selectedIds.size > 0 ? `Continue (${selectedIds.size} selected)` : 'Continue'}
             disabled={selectedIds.size === 0}
+            loading={saveMutation.isPending}
+            loadingText="Saving services..."
             onPress={() => setShowConfirmModal(true)}
           />
         </View>
@@ -305,7 +303,7 @@ export default function TasksScreen() {
       <ConfirmTasksModal
         visible={showConfirmModal}
         selectedTasks={selectedTaskList}
-        saving={saving}
+        saving={saveMutation.isPending}
         onConfirm={handleSaveConfirmed}
         onCancel={() => setShowConfirmModal(false)}
       />

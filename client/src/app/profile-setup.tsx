@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Colors, Spacing } from '../constants/theme';
 import { CommonStyles } from '../constants/commonStyles';
 import { Input } from '../components/ui/Input';
@@ -16,6 +16,7 @@ import { Button } from '../components/ui/Button';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { apiRequest, ApiError } from '../utils/api';
 import { getUserData, saveUserData, clearAuthSession } from '../utils/storage';
+import { useQueryClient } from '@tanstack/react-query';
 import { User } from '../types';
 import {
   validateName,
@@ -25,6 +26,8 @@ import {
 
 export default function ProfileSetupScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const params = useLocalSearchParams<{ from?: string }>();
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -48,7 +51,6 @@ export default function ProfileSetupScreen() {
       if (user?.business_name) setBusinessName(user.business_name);
     });
   }, []);
-
 
   const nameError = touched.name ? validateName(name, true) : null;
   const phoneError = touched.phone ? validateIndianPhone(phone) : null;
@@ -84,8 +86,13 @@ export default function ProfileSetupScreen() {
       });
 
       await saveUserData(response.data);
+      queryClient.setQueryData(['userProfile'], response.data);
 
-      router.replace('/tasks');
+      if (params.from === 'home' || router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/tasks');
+      }
     } catch (error) {
       if (error instanceof ApiError) {
         setServerError(error.message);
@@ -129,7 +136,6 @@ export default function ProfileSetupScreen() {
           </View>
           <ErrorBanner message={serverError} onDismiss={() => setServerError(null)} />
 
-          {/* Form Fields */}
           <View style={CommonStyles.form}>
             <Input
               label="Full name"
@@ -184,7 +190,6 @@ export default function ProfileSetupScreen() {
               autoCapitalize="words"
             />
 
-            {/* Primary Action Button */}
             <View style={CommonStyles.actionContainer}>
               <Button
                 title="Save details"
@@ -196,6 +201,7 @@ export default function ProfileSetupScreen() {
               <TouchableOpacity
                 style={{ marginTop: Spacing.md, alignItems: 'center', paddingVertical: 8 }}
                 onPress={async () => {
+                  queryClient.clear();
                   await clearAuthSession();
                   router.replace('/login');
                 }}

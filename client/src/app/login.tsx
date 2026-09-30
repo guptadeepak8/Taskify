@@ -16,11 +16,13 @@ import { Button } from '../components/ui/Button';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { apiRequest, ApiError } from '../utils/api';
 import { saveToken, saveUserData } from '../utils/storage';
+import { useQueryClient } from '@tanstack/react-query';
 import { LoginResponse } from '../types';
 import { validateEmail } from '../utils/validation';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,7 +35,6 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  // Inline validations
   const emailError = touched.email ? validateEmail(email) : null;
   const passwordError = touched.password && !password.trim() ? 'Password is required' : null;
 
@@ -64,8 +65,10 @@ export default function LoginScreen() {
       });
 
       const { token, user } = response.data;
+      queryClient.clear();
       await saveToken(token);
       await saveUserData(user);
+      queryClient.setQueryData(['userProfile'], user);
 
       if (!user.phone || !user.address) {
         router.replace('/profile-setup');
@@ -74,7 +77,6 @@ export default function LoginScreen() {
       }
     } catch (error) {
       if (error instanceof ApiError) {
-        // If unverified, guide directly to OTP verification
         if (error.code === 'EMAIL_NOT_VERIFIED') {
           router.push({
             pathname: '/verify-otp',
