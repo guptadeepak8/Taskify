@@ -4,6 +4,7 @@ import {
   getCategories,
   getUserTasks,
   saveUserTasks,
+  removeUserTask,
 } from './tasks.service';
 import { createAppError } from '../../utils/app-error';
 
@@ -67,6 +68,25 @@ export async function handleSaveUserTasks(req: Request, res: Response, next: Nex
       success: true,
       data: selected,
       message: 'Tasks saved successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function handleDeleteUserTask(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.user) {
+      throw createAppError(401, 'UNAUTHORIZED', 'Authentication required');
+    }
+
+    const { taskId } = req.params;
+    const remaining = await removeUserTask(req.user.userId, taskId as string);
+
+    return res.status(200).json({
+      success: true,
+      data: remaining,
+      message: 'Task removed successfully',
     });
   } catch (error) {
     next(error);

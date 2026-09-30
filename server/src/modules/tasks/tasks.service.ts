@@ -100,3 +100,13 @@ export async function saveUserTasks(userId: string, taskIds: string[]) {
       .execute();
   });
 }
+
+export async function removeUserTask(userId: string, taskId: string) {
+  await db
+    .deleteFrom('user_tasks')
+    .where('user_id', '=', userId)
+    .where('task_id', '=', taskId)
+    .execute();
+
+  return await getUserTasks(userId);
+}

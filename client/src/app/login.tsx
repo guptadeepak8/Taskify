@@ -107,7 +107,6 @@ export default function LoginScreen() {
         >
           {/* Header section styled after the reference design */}
           <View style={styles.header}>
-            <Text style={styles.badge}>Welcome Back</Text>
             <Text style={styles.title}>Log in to Taskify</Text>
             <Text style={styles.subtitle}>
               Enter your credentials to access your scheduled tasks and home services.

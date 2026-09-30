@@ -6,6 +6,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -14,7 +15,7 @@ import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { apiRequest, ApiError } from '../utils/api';
-import { getUserData, saveUserData } from '../utils/storage';
+import { getUserData, saveUserData, clearAuthSession } from '../utils/storage';
 import { User } from '../types';
 import {
   validateName,
@@ -86,8 +87,8 @@ export default function ProfileSetupScreen() {
       // Update persisted user object with completed profile details
       await saveUserData(response.data);
 
-      // Successfully saved first-login profile -> proceed to home
-      router.replace('/home');
+      // Successfully saved first-login profile -> proceed to task selection
+      router.replace('/tasks');
     } catch (error) {
       if (error instanceof ApiError) {
         setServerError(error.message);
@@ -110,12 +111,26 @@ export default function ProfileSetupScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* Back Navigation */}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/home');
+              }
+            }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={styles.backButtonText}>‹ Back</Text>
+          </TouchableOpacity>
+
           {/* Header section styled exactly after the reference image */}
           <View style={styles.header}>
-            <Text style={styles.badge}>Mumbai</Text>
             <Text style={styles.title}>A few details</Text>
             <Text style={styles.subtitle}>
-              So your Lifestyle Manager can coordinate visits and deliveries smoothly.
+              Please provide your contact details so we can coordinate visits and deliveries smoothly.
             </Text>
           </View>
 
@@ -182,6 +197,19 @@ export default function ProfileSetupScreen() {
                 loadingText="Saving..."
                 onPress={handleSaveProfile}
               />
+
+              <TouchableOpacity
+                style={{ marginTop: Spacing.md, alignItems: 'center', paddingVertical: 8 }}
+                onPress={async () => {
+                  await clearAuthSession();
+                  router.replace('/login');
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={{ fontSize: 14, color: Colors.textMuted, fontWeight: '500' }}>
+                  Sign out and use another account
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
@@ -200,8 +228,18 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.xxl,
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    marginBottom: Spacing.md,
+    paddingVertical: 4,
+  },
+  backButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.primary,
   },
   header: {
     marginBottom: Spacing.xl,
