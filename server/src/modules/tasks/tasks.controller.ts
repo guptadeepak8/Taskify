@@ -40,11 +40,12 @@ export async function handleGetCategories(_req: Request, res: Response, next: Ne
 
 export async function handleGetUserTasks(req: Request, res: Response, next: NextFunction) {
   try {
-    if (!req.user) {
+    const user = (req as any).user;
+    if (!user) {
       throw createAppError(401, 'UNAUTHORIZED', 'Authentication required');
     }
 
-    const tasks = await getUserTasks(req.user.userId);
+    const tasks = await getUserTasks(user.userId);
 
     return res.status(200).json({
       success: true,
@@ -57,12 +58,13 @@ export async function handleGetUserTasks(req: Request, res: Response, next: Next
 
 export async function handleSaveUserTasks(req: Request, res: Response, next: NextFunction) {
   try {
-    if (!req.user) {
+    const user = (req as any).user;
+    if (!user) {
       throw createAppError(401, 'UNAUTHORIZED', 'Authentication required');
     }
 
     const { taskIds } = req.body;
-    const selected = await saveUserTasks(req.user.userId, taskIds);
+    const selected = await saveUserTasks(user.userId, taskIds);
 
     return res.status(200).json({
       success: true,
@@ -76,12 +78,13 @@ export async function handleSaveUserTasks(req: Request, res: Response, next: Nex
 
 export async function handleDeleteUserTask(req: Request, res: Response, next: NextFunction) {
   try {
-    if (!req.user) {
+    const user = (req as any).user;
+    if (!user) {
       throw createAppError(401, 'UNAUTHORIZED', 'Authentication required');
     }
 
     const { taskId } = req.params;
-    const remaining = await removeUserTask(req.user.userId, taskId as string);
+    const remaining = await removeUserTask(user.userId, taskId as string);
 
     return res.status(200).json({
       success: true,

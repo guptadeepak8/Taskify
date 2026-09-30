@@ -4,10 +4,11 @@ import { createAppError } from '../../utils/app-error';
 
 export async function handleGetProfile(req: Request, res: Response, next: NextFunction) {
   try {
-    if (!req.user) {
+    const user = (req as any).user;
+    if (!user) {
       throw createAppError(401, 'UNAUTHORIZED', 'Authentication required');
     }
-    const profile = await getUserProfile(req.user.userId);
+    const profile = await getUserProfile(user.userId);
     return res.status(200).json({
       success: true,
       data: profile,
@@ -19,10 +20,11 @@ export async function handleGetProfile(req: Request, res: Response, next: NextFu
 
 export async function handleUpdateProfile(req: Request, res: Response, next: NextFunction) {
   try {
-    if (!req.user) {
+    const user = (req as any).user;
+    if (!user) {
       throw createAppError(401, 'UNAUTHORIZED', 'Authentication required');
     }
-    const updated = await updateUserProfile(req.user.userId, req.body);
+    const updated = await updateUserProfile(user.userId, req.body);
     return res.status(200).json({
       success: true,
       data: updated,
