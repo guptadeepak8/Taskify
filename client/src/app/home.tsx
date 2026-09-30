@@ -153,11 +153,11 @@ export default function HomeScreen() {
           </View>
           {selectedTasks.length > 0 && (
             <TouchableOpacity
-              style={styles.editBtn}
+              style={styles.addTasksBtn}
               onPress={() => router.push('/tasks')}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={styles.editBtnText}>Modify Tasks</Text>
+              <Text style={styles.addTasksBtnText}>+ Add Tasks</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -177,39 +177,28 @@ export default function HomeScreen() {
             />
           </View>
         ) : (
-          <>
-            {Object.entries(groupedSelected).map(([category, items]) => (
-              <View key={category} style={styles.categoryBlock}>
-                <Text style={styles.categoryTitle}>{category}</Text>
-                {items.map((item) => (
-                  <View key={item.id} style={styles.taskCard}>
-                    <View style={styles.taskBullet} />
-                    <View style={styles.taskTextWrapper}>
-                      <Text style={styles.taskName}>{item.name}</Text>
-                      <Text style={styles.taskDesc}>{item.description}</Text>
-                    </View>
-                    <TouchableOpacity
-                      style={styles.removeTaskBtn}
-                      onPress={() => handleRemoveTask(item.id)}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      accessibilityLabel={`Remove ${item.name}`}
-                    >
-                      <Text style={styles.removeTaskBtnText}>✕</Text>
-                    </TouchableOpacity>
+          Object.entries(groupedSelected).map(([category, items]) => (
+            <View key={category} style={styles.categoryBlock}>
+              <Text style={styles.categoryTitle}>{category}</Text>
+              {items.map((item) => (
+                <View key={item.id} style={styles.taskCard}>
+                  <View style={styles.taskBullet} />
+                  <View style={styles.taskTextWrapper}>
+                    <Text style={styles.taskName}>{item.name}</Text>
+                    <Text style={styles.taskDesc}>{item.description}</Text>
                   </View>
-                ))}
-              </View>
-            ))}
-
-            {/* Bottom Modify Action - Only visible when tasks exist */}
-            <View style={styles.actionsContainer}>
-              <Button
-                title="Add or Change Tasks"
-                variant="primary"
-                onPress={() => router.push('/tasks')}
-              />
+                  <TouchableOpacity
+                    style={styles.removeTaskBtn}
+                    onPress={() => handleRemoveTask(item.id)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    accessibilityLabel={`Remove ${item.name}`}
+                  >
+                    <Text style={styles.removeTaskBtnText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
             </View>
-          </>
+          ))
         )}
       </ScrollView>
 
@@ -457,15 +446,20 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     marginTop: 2,
   },
-  editBtn: {
-    backgroundColor: Colors.primaryLight,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+  addTasksBtn: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: BorderRadius.full,
+    shadowColor: Colors.primaryDark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  editBtnText: {
+  addTasksBtnText: {
     fontSize: 13,
-    color: Colors.primaryDark,
+    color: '#FFFFFF',
     fontWeight: '700',
   },
   categoryBlock: {
