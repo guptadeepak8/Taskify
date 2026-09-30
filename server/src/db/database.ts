@@ -3,13 +3,13 @@ import { Pool } from 'pg';
 import { env } from '../config/env';
 import { Database } from './types';
 
-const isCloudDb =
-  env.DATABASE_URL.includes('render.com') ||
-  env.DATABASE_URL.includes('sslmode=require');
+const isLocal =
+  env.DATABASE_URL.includes('localhost') ||
+  env.DATABASE_URL.includes('127.0.0.1');
 
 const pool = new Pool({
   connectionString: env.DATABASE_URL,
-  ssl: isCloudDb ? { rejectUnauthorized: false } : undefined,
+  ssl: !isLocal && env.DATABASE_URL ? { rejectUnauthorized: false } : undefined,
 });
 
 export const db = new Kysely<Database>({
