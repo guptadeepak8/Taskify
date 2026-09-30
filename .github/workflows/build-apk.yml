@@ -1,0 +1,73 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Standalone APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile=false
+
+      - name: Prebuild Native Android Project
+        working-directory: ./client
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build Release APK with Gradle
+        working-directory: ./client/android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Locate and Prepare APK
+        working-directory: ./client/android/app/build/outputs/apk/release
+        run: |
+          ls -la
+          cp $(ls *.apk | head -n 1) Taskify.apk
+
+      - name: Upload APK as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taskify-Android-APK
+          path: client/android/app/build/outputs/apk/release/Taskify.apk
+          if-no-files-found: error
+
+      - name: Publish Direct APK Download in GitHub Releases
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        with:
+          tag_name: v1.0.0
+          name: "Taskify v1.0.0 (Android APK)"
+          body: "Direct download for Taskify standalone Android APK."
+          files: client/android/app/build/outputs/apk/release/Taskify.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
