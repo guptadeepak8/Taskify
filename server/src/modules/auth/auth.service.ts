@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { db } from '../../db/database';
+import { getDb } from '../../db/database';
 import { env } from '../../config/env';
 import { RegisterInput, LoginInput, VerifyOtpInput, ResendOtpInput } from './auth.schema';
 import { SafeUser, User } from '../../db/types';
@@ -18,6 +18,7 @@ function toSafeUser(user: User): SafeUser {
 }
 
 export async function generateAndSendOtp(userId: string, email: string): Promise<string> {
+  const db = await getDb();
   const recentOtp = await db
     .selectFrom('otps')
     .selectAll()
@@ -71,6 +72,7 @@ export async function generateAndSendOtp(userId: string, email: string): Promise
 export async function registerUser(
   input: RegisterInput
 ): Promise<{ user: SafeUser; message: string }> {
+  const db = await getDb();
   const existing = await db
     .selectFrom('users')
     .selectAll()
@@ -106,6 +108,7 @@ export async function registerUser(
 export async function verifyOtp(
   input: VerifyOtpInput
 ): Promise<{ user: SafeUser; token: string }> {
+  const db = await getDb();
   const activeOtp = await db
     .selectFrom('otps')
     .selectAll()
@@ -183,6 +186,7 @@ export async function verifyOtp(
 export async function resendOtp(
   input: ResendOtpInput
 ): Promise<{ message: string }> {
+  const db = await getDb();
   const user = await db
     .selectFrom('users')
     .selectAll()
@@ -207,6 +211,7 @@ export async function resendOtp(
 export async function loginUser(
   input: LoginInput
 ): Promise<{ user: SafeUser; token: string }> {
+  const db = await getDb();
   const user = await db
     .selectFrom('users')
     .selectAll()

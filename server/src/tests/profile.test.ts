@@ -1,14 +1,19 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../index';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
-import { db } from '../db/database';
+import { getDb } from '../db/database';
 import bcrypt from 'bcryptjs';
 
 describe('Profile Module', () => {
+  let db: any;
   let userToken: string;
   const userEmail = `profile_test_${Date.now()}@example.com`;
+
+  beforeAll(async () => {
+    db = await getDb();
+  });
 
   it('requires authentication for profile endpoints', async () => {
     const res = await request(app).get('/api/v1/profile');

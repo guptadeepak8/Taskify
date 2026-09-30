@@ -1,13 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../index';
-import { db } from '../db/database';
+import { getDb } from '../db/database';
 import bcrypt from 'bcryptjs';
 
 describe('Auth & Email OTP Lifecycle (Risky Logic)', () => {
+  let db: any;
   const testEmail = `test_${Date.now()}@example.com`;
   const testPassword = 'Password@123';
   const knownOtp = '123456';
+
+  beforeAll(async () => {
+    db = await getDb();
+  });
 
   describe('1. OTP Generation & Storage', () => {
     it('generates secure 6-digit OTP, stores as bcrypt hash, and marks user unverified', async () => {

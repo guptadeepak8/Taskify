@@ -1,4 +1,4 @@
-import { db } from '../../db/database';
+import { getDb } from '../../db/database';
 import { createAppError } from '../../utils/app-error';
 
 export interface TaskFilter {
@@ -7,6 +7,7 @@ export interface TaskFilter {
 }
 
 export async function getTasks(filter?: TaskFilter) {
+  const db = await getDb();
   let query = db.selectFrom('tasks').selectAll();
 
   if (filter?.category) {
@@ -15,7 +16,7 @@ export async function getTasks(filter?: TaskFilter) {
 
   if (filter?.search && filter.search.trim()) {
     const term = `%${filter.search.trim()}%`;
-    query = query.where((eb) =>
+    query = query.where((eb: any) =>
       eb.or([
         eb('name', 'ilike', term),
         eb('description', 'ilike', term),
@@ -27,6 +28,7 @@ export async function getTasks(filter?: TaskFilter) {
 }
 
 export async function getCategories(): Promise<string[]> {
+  const db = await getDb();
   const rows = await db
     .selectFrom('tasks')
     .select('category')
@@ -34,10 +36,11 @@ export async function getCategories(): Promise<string[]> {
     .orderBy('category', 'asc')
     .execute();
 
-  return rows.map((r) => r.category);
+  return rows.map((r: any) => r.category);
 }
 
 export async function getUserTasks(userId: string) {
+  const db = await getDb();
   return await db
     .selectFrom('user_tasks')
     .innerJoin('tasks', 'tasks.id', 'user_tasks.task_id')
@@ -55,6 +58,7 @@ export async function getUserTasks(userId: string) {
 }
 
 export async function saveUserTasks(userId: string, taskIds: string[]) {
+  const db = await getDb();
   const uniqueTaskIds = Array.from(new Set(taskIds));
 
   // Verify that all requested tasks exist in the database
@@ -69,7 +73,7 @@ export async function saveUserTasks(userId: string, taskIds: string[]) {
   }
 
   // Atomically update user task selection
-  return await db.transaction().execute(async (trx) => {
+  return await db.transaction().execute(async (trx: any) => {
     await trx.deleteFrom('user_tasks').where('user_id', '=', userId).execute();
 
     if (uniqueTaskIds.length > 0) {
@@ -102,6 +106,7 @@ export async function saveUserTasks(userId: string, taskIds: string[]) {
 }
 
 export async function removeUserTask(userId: string, taskId: string) {
+  const db = await getDb();
   await db
     .deleteFrom('user_tasks')
     .where('user_id', '=', userId)

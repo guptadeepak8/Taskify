@@ -1,14 +1,19 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../index';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
-import { db } from '../db/database';
+import { getDb } from '../db/database';
 import bcrypt from 'bcryptjs';
 
 describe('Tasks Module', () => {
+  let db: any;
   let userToken: string;
   let sampleTaskIds: string[] = [];
+
+  beforeAll(async () => {
+    db = await getDb();
+  });
 
   it('retrieves at least 20 seeded tasks across at least 4 categories', async () => {
     const res = await request(app).get('/api/v1/tasks');

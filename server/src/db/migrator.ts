@@ -1,5 +1,5 @@
-import { Migrator, MigrationProvider, Migration, MigrationResult } from 'kysely/migration';
-import { db } from './database';
+import type { MigrationProvider, Migration, MigrationResult } from 'kysely/migration';
+import { getDb } from './database';
 import * as m001 from './migrations/001_create_users_table';
 import * as m002 from './migrations/002_create_otps_table';
 import * as m003 from './migrations/003_create_tasks_tables';
@@ -15,6 +15,8 @@ class StaticMigrationProvider implements MigrationProvider {
 }
 
 export async function migrateToLatest(): Promise<MigrationResult[] | undefined> {
+  const db = await getDb();
+  const { Migrator } = await import('kysely/migration');
   const migrator = new Migrator({
     db,
     provider: new StaticMigrationProvider(),

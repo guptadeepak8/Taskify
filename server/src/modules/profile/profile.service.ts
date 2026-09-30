@@ -1,4 +1,4 @@
-import { db } from '../../db/database';
+import { getDb } from '../../db/database';
 import { SafeUser, User } from '../../db/types';
 import { UpdateProfileInput } from './profile.schema';
 import { createAppError } from '../../utils/app-error';
@@ -9,6 +9,7 @@ function toSafeUser(user: User): SafeUser {
 }
 
 export async function getUserProfile(userId: string): Promise<SafeUser> {
+  const db = await getDb();
   const user = await db
     .selectFrom('users')
     .selectAll()
@@ -26,6 +27,7 @@ export async function updateUserProfile(
   userId: string,
   input: UpdateProfileInput
 ): Promise<SafeUser> {
+  const db = await getDb();
   const user = await db
     .selectFrom('users')
     .selectAll()

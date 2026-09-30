@@ -1,4 +1,4 @@
-import { Kysely, sql } from 'kysely';
+import type { Kysely } from 'kysely';
 
 export const SEED_TASKS = [
   // 1. Home Services (AC, plumbing, electrical, cleaning, repairs)
@@ -131,6 +131,7 @@ export const SEED_TASKS = [
 ];
 
 export async function up(db: Kysely<any>): Promise<void> {
+  const { sql } = await import('kysely');
   // 1. Create tasks table
   await db.schema
     .createTable('tasks')

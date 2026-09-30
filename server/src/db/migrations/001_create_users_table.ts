@@ -1,6 +1,7 @@
-import { Kysely, sql } from 'kysely';
+import type { Kysely } from 'kysely';
 
 export async function up(db: Kysely<any>): Promise<void> {
+  const { sql } = await import('kysely');
   await db.schema
     .createTable('users')
     .addColumn('id', 'uuid', (col) => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
