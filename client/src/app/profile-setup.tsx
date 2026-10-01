@@ -88,7 +88,7 @@ export default function ProfileSetupScreen() {
       await saveUserData(response.data);
       queryClient.setQueryData(['userProfile'], response.data);
 
-      if (params.from === 'home' || router.canGoBack()) {
+      if (params.from === 'home') {
         router.back();
       } else {
         router.replace('/tasks');
@@ -115,19 +115,15 @@ export default function ProfileSetupScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <TouchableOpacity
-            style={CommonStyles.backButton}
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace('/home');
-              }
-            }}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={CommonStyles.backButtonText}>‹ Back</Text>
-          </TouchableOpacity>
+          {params.from === 'home' ? (
+            <TouchableOpacity
+              style={CommonStyles.backButton}
+              onPress={() => router.back()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={CommonStyles.backButtonText}>‹ Back</Text>
+            </TouchableOpacity>
+          ) : null}
           <View style={CommonStyles.header}>
             <Text style={CommonStyles.title}>A few details</Text>
             <Text style={CommonStyles.subtitle}>

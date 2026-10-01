@@ -1,55 +1,48 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { getToken, getUserData } from '../utils/storage';
 import { Colors, Spacing, BorderRadius } from '../constants/theme';
-import LoginScreen from './login';
+import { User } from '../types';
 
 export default function Index() {
   const router = useRouter();
-  const [checking, setChecking] = useState(true);
-  const [hasToken, setHasToken] = useState(false);
 
   useEffect(() => {
     async function checkAuth() {
       try {
         const token = await getToken();
         if (token) {
-          setHasToken(true);
-          const user = await getUserData();
+          const user = await getUserData<User>();
           if (user && (!user.phone || !user.address)) {
             router.replace('/profile-setup');
           } else {
             router.replace('/home');
           }
-          return;
+        } else {
+          router.replace('/login');
         }
       } catch (e) {
         console.error('Error restoring session:', e);
-      } finally {
-        setChecking(false);
+        router.replace('/login');
       }
     }
 
     checkAuth();
   }, [router]);
 
-  if (checking || hasToken) {
-    return (
-      <View style={styles.splash}>
-        <View style={styles.brandContainer}>
-          <View style={styles.logoBadge}>
-            <Text style={styles.logoLetter}>T</Text>
-          </View>
-          <Text style={styles.brandTitle}>Taskify</Text>
-          <Text style={styles.brandSubtitle}>Your Neighbourhood Services</Text>
+  return (
+    <View style={styles.splash}>
+      <View style={styles.brandContainer}>
+        <View style={styles.logoBadge}>
+          <Text style={styles.logoLetter}>T</Text>
         </View>
-        <ActivityIndicator size="large" color={Colors.primary} style={styles.spinner} />
+        <Text style={styles.brandTitle}>Taskify</Text>
+        <Text style={styles.brandSubtitle}>Your Neighbourhood Services</Text>
       </View>
-    );
-  }
-
-  return <LoginScreen />;
+      <ActivityIndicator size="large" color={Colors.primary} style={styles.spinner} />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -89,12 +82,12 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   brandSubtitle: {
-    fontSize: 14,
+    fontSize: 16,
     color: Colors.textMuted,
     marginTop: Spacing.xs,
-    letterSpacing: 0.2,
+    fontWeight: '500',
   },
   spinner: {
-    marginTop: Spacing.xl,
+    marginTop: Spacing.xxl,
   },
 });
