@@ -21,7 +21,7 @@ export async function sendOtpEmail(to: string, otp: string): Promise<boolean> {
       from: env.SMTP_FROM,
       to,
       replyTo: env.SMTP_USER || env.SMTP_FROM,
-      subject: `${otp} is your Taskify verification code`,
+      subject: `Taskify verification code`,
       text: `Your Taskify verification code is ${otp}. It is valid for 10 minutes.\n\nIf you did not request this code, you can safely ignore this email.\n\n— Taskify Team`,
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
