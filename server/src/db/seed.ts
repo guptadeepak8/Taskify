@@ -1,4 +1,4 @@
-import type { Kysely } from 'kysely';
+import { prisma } from './prisma';
 
 export const SEED_TASKS = [
   // 1. Home Services (AC, plumbing, electrical, cleaning, repairs)
@@ -130,51 +130,23 @@ export const SEED_TASKS = [
   },
 ];
 
-export async function up(db: Kysely<any>): Promise<void> {
-  const { sql } = await import('kysely');
-  // 1. Create tasks table
-  await db.schema
-    .createTable('tasks')
-    .addColumn('id', 'uuid', (col) => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
-    .addColumn('name', 'varchar(255)', (col) => col.notNull())
-    .addColumn('category', 'varchar(100)', (col) => col.notNull())
-    .addColumn('description', 'text', (col) => col.notNull())
-    .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
-    .execute();
-
-  await db.schema
-    .createIndex('tasks_category_idx')
-    .on('tasks')
-    .column('category')
-    .execute();
-
-  // 2. Create user_tasks table
-  await db.schema
-    .createTable('user_tasks')
-    .addColumn('id', 'uuid', (col) => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
-    .addColumn('user_id', 'uuid', (col) =>
-      col.references('users.id').onDelete('cascade').notNull()
-    )
-    .addColumn('task_id', 'uuid', (col) =>
-      col.references('tasks.id').onDelete('cascade').notNull()
-    )
-    .addColumn('created_at', 'timestamptz', (col) => col.notNull().defaultTo(sql`now()`))
-    .addUniqueConstraint('user_tasks_user_id_task_id_unique', ['user_id', 'task_id'])
-    .execute();
-
-  await db.schema
-    .createIndex('user_tasks_user_id_idx')
-    .on('user_tasks')
-    .column('user_id')
-    .execute();
-
-  // 3. Seed the 24 tasks across 4 categories
-  for (const task of SEED_TASKS) {
-    await db.insertInto('tasks').values(task).execute();
+export async function seedTasksIfNeeded(): Promise<void> {
+  const count = await prisma.task.count();
+  if (count === 0) {
+    console.log(`Seeding ${SEED_TASKS.length} default tasks...`);
+    await prisma.task.createMany({
+      data: SEED_TASKS,
+    });
+    console.log('Seeding completed successfully.');
   }
 }
 
-export async function down(db: Kysely<any>): Promise<void> {
-  await db.schema.dropTable('user_tasks').execute();
-  await db.schema.dropTable('tasks').execute();
-}
+seedTasksIfNeeded()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error('Seed failed:', err);
+    process.exit(1);
+  });
+

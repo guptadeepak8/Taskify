@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../index';
-import { getDb } from '../db/database';
+import { prisma } from '../db/prisma';
 import bcrypt from 'bcryptjs';
 
 describe('Auth & Email OTP Lifecycle (Risky Logic)', () => {
-  let db: any;
   const testEmail = `test_${Date.now()}@example.com`;
   const testPassword = 'Password@123';
   const knownOtp = '123456';
 
   beforeAll(async () => {
-    db = await getDb();
+    // Ensure database connection
+    await prisma.$connect();
   });
 
   describe('1. OTP Generation & Storage', () => {
@@ -31,12 +31,9 @@ describe('Auth & Email OTP Lifecycle (Risky Logic)', () => {
       expect(res.body.data.user.password_hash).toBeUndefined();
 
       // Inspect the generated OTP in database
-      const otpRecord = await db
-        .selectFrom('otps')
-        .selectAll()
-        .where('email', '=', testEmail)
-        .where('is_used', '=', false)
-        .executeTakeFirst();
+      const otpRecord = await prisma.otp.findFirst({
+        where: { email: testEmail, is_used: false },
+      });
 
       expect(otpRecord).toBeDefined();
       expect(otpRecord?.attempts).toBe(0);
@@ -54,11 +51,10 @@ describe('Auth & Email OTP Lifecycle (Risky Logic)', () => {
 
       // Store a known hash for subsequent verification tests
       const knownHash = await bcrypt.hash(knownOtp, 10);
-      await db
-        .updateTable('otps')
-        .set({ otp_hash: knownHash })
-        .where('id', '=', otpRecord!.id)
-        .execute();
+      await prisma.otp.update({
+        where: { id: otpRecord!.id },
+        data: { otp_hash: knownHash },
+      });
     });
   });
 
@@ -66,16 +62,13 @@ describe('Auth & Email OTP Lifecycle (Risky Logic)', () => {
     it('rejects expired OTP with 400 OTP_EXPIRED', async () => {
       const expiredEmail = `expired_${Date.now()}@example.com`;
       const password_hash = await bcrypt.hash('Password@123', 10);
-      const user = await db
-        .insertInto('users')
-        .values({ email: expiredEmail, password_hash, is_verified: false })
-        .returningAll()
-        .executeTakeFirstOrThrow();
+      const user = await prisma.user.create({
+        data: { email: expiredEmail, password_hash, is_verified: false },
+      });
 
       const otp_hash = await bcrypt.hash('654321', 10);
-      await db
-        .insertInto('otps')
-        .values({
+      await prisma.otp.create({
+        data: {
           user_id: user.id,
           email: expiredEmail,
           otp_hash,
@@ -83,8 +76,8 @@ describe('Auth & Email OTP Lifecycle (Risky Logic)', () => {
           expires_at: new Date(Date.now() - 60 * 1000), // expired 1 minute ago
           last_sent_at: new Date(Date.now() - 60 * 1000),
           is_used: false,
-        })
-        .execute();
+        },
+      });
 
       const res = await request(app)
         .post('/api/v1/auth/verify-otp')
@@ -118,16 +111,13 @@ describe('Auth & Email OTP Lifecycle (Risky Logic)', () => {
     it('locks OTP when 5 failed attempts are reached', async () => {
       const lockoutEmail = `lockout_${Date.now()}@example.com`;
       const password_hash = await bcrypt.hash('Password@123', 10);
-      const user = await db
-        .insertInto('users')
-        .values({ email: lockoutEmail, password_hash, is_verified: false })
-        .returningAll()
-        .executeTakeFirstOrThrow();
+      const user = await prisma.user.create({
+        data: { email: lockoutEmail, password_hash, is_verified: false },
+      });
 
       const otp_hash = await bcrypt.hash('111222', 10);
-      await db
-        .insertInto('otps')
-        .values({
+      await prisma.otp.create({
+        data: {
           user_id: user.id,
           email: lockoutEmail,
           otp_hash,
@@ -135,8 +125,8 @@ describe('Auth & Email OTP Lifecycle (Risky Logic)', () => {
           expires_at: new Date(Date.now() + 10 * 60 * 1000),
           last_sent_at: new Date(),
           is_used: false,
-        })
-        .execute();
+        },
+      });
 
       // 5th attempt with wrong OTP -> triggers lockout
       const res5 = await request(app)

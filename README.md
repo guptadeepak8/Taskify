@@ -35,16 +35,18 @@ copy .env.example .env     # On Windows (cmd)
 # cp .env.example .env     # On macOS / Linux
 ```
 
-### 3. Install Dependencies & Run Database Migrations
+### 3. Install Dependencies & Setup Database (Prisma)
 ```bash
 pnpm install
+pnpm prisma:generate
+pnpm prisma:push
 pnpm migrate
 ```
 
-This applies migrations:
-- `001_create_users_table`: Creates user profiles with Indian phone and address fields.
-- `002_create_otps_table`: Creates OTP tracking with bcrypt hashing and attempt limits.
-- `003_create_tasks_tables`: Seeds 24 tasks across 4 categories.
+This ensures the database schema is synchronized:
+- `users`: User profiles with Indian phone and address fields.
+- `otps`: OTP tracking with bcrypt hashing and attempt limits.
+- `tasks` & `user_tasks`: 24 tasks seeded across 4 categories and user selections.
 
 ### 4. Start the Backend Server
 ```bash

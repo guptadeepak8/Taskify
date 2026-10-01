@@ -3,7 +3,6 @@ import cors from 'cors';
 import { env } from './config/env';
 import apiRouter from './route';
 import { errorHandler } from './middleware/error.middleware';
-import { migrateToLatest } from './db/migrator';
 
 export const app = express();
 
@@ -26,22 +25,12 @@ app.use((_req, res) => {
   });
 });
 
-
 app.use(errorHandler);
 
-
 if (process.env.NODE_ENV !== 'test') {
-  (async () => {
-    try {
-      await migrateToLatest();
-    } catch (error) {
-      console.warn('Database migration skipped or deferred:', (error as Error).message);
-    }
-
-    app.listen(env.PORT, '0.0.0.0', () => {
-      console.log(`Server listening on http://0.0.0.0:${env.PORT}`);
-    });
-  })();
+  app.listen(env.PORT, '0.0.0.0', () => {
+    console.log(`Server listening on http://0.0.0.0:${env.PORT}`);
+  });
 }
 
 export default app;

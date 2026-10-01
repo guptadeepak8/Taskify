@@ -3,16 +3,15 @@ import request from 'supertest';
 import { app } from '../index';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
-import { getDb } from '../db/database';
+import { prisma } from '../db/prisma';
 import bcrypt from 'bcryptjs';
 
 describe('Tasks Module', () => {
-  let db: any;
   let userToken: string;
   let sampleTaskIds: string[] = [];
 
   beforeAll(async () => {
-    db = await getDb();
+    await prisma.$connect();
   });
 
   it('retrieves at least 20 seeded tasks across at least 4 categories', async () => {
@@ -65,11 +64,9 @@ describe('Tasks Module', () => {
   it('saves and retrieves user task selection', async () => {
     const email = `task_user_${Date.now()}@example.com`;
     const password_hash = await bcrypt.hash('Password@123', 10);
-    const user = await db
-      .insertInto('users')
-      .values({ email, password_hash, is_verified: true })
-      .returningAll()
-      .executeTakeFirstOrThrow();
+    const user = await prisma.user.create({
+      data: { email, password_hash, is_verified: true },
+    });
 
     userToken = jwt.sign({ userId: user.id, email }, env.JWT_SECRET);
 

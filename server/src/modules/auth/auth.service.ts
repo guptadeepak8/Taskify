@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { getDb } from '../../db/database';
+import { prisma } from '../../db/prisma';
 import { env } from '../../config/env';
 import { RegisterInput, LoginInput, VerifyOtpInput, ResendOtpInput } from './auth.schema';
 import { SafeUser, User } from '../../db/types';
@@ -18,14 +18,10 @@ function toSafeUser(user: User): SafeUser {
 }
 
 export async function generateAndSendOtp(userId: string, email: string): Promise<string> {
-  const db = await getDb();
-  const recentOtp = await db
-    .selectFrom('otps')
-    .selectAll()
-    .where('email', '=', email)
-    .where('is_used', '=', false)
-    .orderBy('created_at', 'desc')
-    .executeTakeFirst();
+  const recentOtp = await prisma.otp.findFirst({
+    where: { email, is_used: false },
+    orderBy: { created_at: 'desc' },
+  });
 
   if (recentOtp) {
     const elapsedSeconds = (Date.now() - new Date(recentOtp.last_sent_at).getTime()) / 1000;
@@ -39,21 +35,18 @@ export async function generateAndSendOtp(userId: string, email: string): Promise
       );
     }
 
-    await db
-      .updateTable('otps')
-      .set({ is_used: true })
-      .where('email', '=', email)
-      .where('is_used', '=', false)
-      .execute();
+    await prisma.otp.updateMany({
+      where: { email, is_used: false },
+      data: { is_used: true },
+    });
   }
 
   const rawOtp = crypto.randomInt(100000, 1000000).toString();
   const otp_hash = await bcrypt.hash(rawOtp, 10);
   const expires_at = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
-  await db
-    .insertInto('otps')
-    .values({
+  await prisma.otp.create({
+    data: {
       user_id: userId,
       email,
       otp_hash,
@@ -61,8 +54,8 @@ export async function generateAndSendOtp(userId: string, email: string): Promise
       expires_at,
       last_sent_at: new Date(),
       is_used: false,
-    })
-    .execute();
+    },
+  });
 
   await sendOtpEmail(email, rawOtp);
 
@@ -72,12 +65,9 @@ export async function generateAndSendOtp(userId: string, email: string): Promise
 export async function registerUser(
   input: RegisterInput
 ): Promise<{ user: SafeUser; message: string }> {
-  const db = await getDb();
-  const existing = await db
-    .selectFrom('users')
-    .selectAll()
-    .where('email', '=', input.email)
-    .executeTakeFirst();
+  const existing = await prisma.user.findUnique({
+    where: { email: input.email },
+  });
 
   if (existing) {
     throw createAppError(409, 'USER_ALREADY_EXISTS', 'A user with this email already exists');
@@ -86,21 +76,19 @@ export async function registerUser(
   const saltRounds = 10;
   const password_hash = await bcrypt.hash(input.password, saltRounds);
 
-  const createdUser = await db
-    .insertInto('users')
-    .values({
+  const createdUser = await prisma.user.create({
+    data: {
       email: input.email,
       password_hash,
       name: input.name ?? null,
       is_verified: false,
-    })
-    .returningAll()
-    .executeTakeFirstOrThrow();
+    },
+  });
 
   await generateAndSendOtp(createdUser.id, createdUser.email);
 
   return {
-    user: toSafeUser(createdUser as User),
+    user: toSafeUser(createdUser),
     message: 'Registration successful. A 6-digit verification code has been sent to your email.',
   };
 }
@@ -108,14 +96,10 @@ export async function registerUser(
 export async function verifyOtp(
   input: VerifyOtpInput
 ): Promise<{ user: SafeUser; token: string }> {
-  const db = await getDb();
-  const activeOtp = await db
-    .selectFrom('otps')
-    .selectAll()
-    .where('email', '=', input.email)
-    .where('is_used', '=', false)
-    .orderBy('created_at', 'desc')
-    .executeTakeFirst();
+  const activeOtp = await prisma.otp.findFirst({
+    where: { email: input.email, is_used: false },
+    orderBy: { created_at: 'desc' },
+  });
 
   if (!activeOtp) {
     throw createAppError(400, 'INVALID_OTP', 'Invalid or expired verification code.');
@@ -136,11 +120,10 @@ export async function verifyOtp(
   const isValid = await bcrypt.compare(input.otp, activeOtp.otp_hash);
   if (!isValid) {
     const updatedAttempts = activeOtp.attempts + 1;
-    await db
-      .updateTable('otps')
-      .set({ attempts: updatedAttempts })
-      .where('id', '=', activeOtp.id)
-      .execute();
+    await prisma.otp.update({
+      where: { id: activeOtp.id },
+      data: { attempts: updatedAttempts },
+    });
 
     const remainingAttempts = Math.max(0, MAX_OTP_ATTEMPTS - updatedAttempts);
     if (remainingAttempts === 0) {
@@ -158,18 +141,16 @@ export async function verifyOtp(
     );
   }
 
-  await db
-    .updateTable('otps')
-    .set({ is_used: true })
-    .where('id', '=', activeOtp.id)
-    .execute();
-
-  const updatedUser = await db
-    .updateTable('users')
-    .set({ is_verified: true, updated_at: new Date() })
-    .where('id', '=', activeOtp.user_id)
-    .returningAll()
-    .executeTakeFirstOrThrow();
+  const [_, updatedUser] = await prisma.$transaction([
+    prisma.otp.update({
+      where: { id: activeOtp.id },
+      data: { is_used: true },
+    }),
+    prisma.user.update({
+      where: { id: activeOtp.user_id },
+      data: { is_verified: true, updated_at: new Date() },
+    }),
+  ]);
 
   const token = jwt.sign(
     { userId: updatedUser.id, email: updatedUser.email },
@@ -178,7 +159,7 @@ export async function verifyOtp(
   );
 
   return {
-    user: toSafeUser(updatedUser as User),
+    user: toSafeUser(updatedUser),
     token,
   };
 }
@@ -186,12 +167,9 @@ export async function verifyOtp(
 export async function resendOtp(
   input: ResendOtpInput
 ): Promise<{ message: string }> {
-  const db = await getDb();
-  const user = await db
-    .selectFrom('users')
-    .selectAll()
-    .where('email', '=', input.email)
-    .executeTakeFirst();
+  const user = await prisma.user.findUnique({
+    where: { email: input.email },
+  });
 
   if (!user) {
     throw createAppError(404, 'USER_NOT_FOUND', 'User with this email was not found.');
@@ -211,12 +189,9 @@ export async function resendOtp(
 export async function loginUser(
   input: LoginInput
 ): Promise<{ user: SafeUser; token: string }> {
-  const db = await getDb();
-  const user = await db
-    .selectFrom('users')
-    .selectAll()
-    .where('email', '=', input.email)
-    .executeTakeFirst();
+  const user = await prisma.user.findUnique({
+    where: { email: input.email },
+  });
 
   if (!user) {
     throw createAppError(401, 'INVALID_CREDENTIALS', 'Invalid email or password');
@@ -243,7 +218,7 @@ export async function loginUser(
   );
 
   return {
-    user: toSafeUser(user as User),
+    user: toSafeUser(user),
     token,
   };
 }

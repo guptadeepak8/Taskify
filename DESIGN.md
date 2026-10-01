@@ -9,12 +9,12 @@ A concise overview of the backend architecture, trade-offs, scope boundaries, an
 Taskify uses a **layered, functional, modular monolith** designed for simplicity, type safety, and clean separation of concerns:
 
 - **Runtime & Framework**: Node.js with Express and TypeScript (strict mode).
-- **Database & Query Builder**: PostgreSQL with Kysely for type-safe SQL queries without the overhead of heavy ORMs.
+- **Database & ORM**: PostgreSQL with Prisma ORM for type-safe database access, automated schema management, and transactional integrity.
 - **Validation**: Zod middleware validating incoming request bodies, queries, and params before reaching controllers.
 - **Authentication**: Stateless JWTs using standard `Authorization: Bearer <token>` headers tailored for native mobile storage (`expo-secure-store`).
 - **Email & OTP**: Nodemailer wired to Mailpit for local testing. 6-digit OTPs are cryptographically generated (`crypto.randomInt`) and stored exclusively as bcrypt hashes with single-use flags, 10-minute TTLs, and 5-attempt brute-force protection.
 - **Data Flow**:
-  $$\text{Request} \longrightarrow \text{Validation/Auth Middleware} \longrightarrow \text{Controller} \longrightarrow \text{Service Layer} \longrightarrow \text{Kysely (PostgreSQL)}$$
+  $$\text{Request} \longrightarrow \text{Validation/Auth Middleware} \longrightarrow \text{Controller} \longrightarrow \text{Service Layer} \longrightarrow \text{Prisma Client (PostgreSQL)}$$
 
 ---
 

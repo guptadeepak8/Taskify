@@ -3,16 +3,15 @@ import request from 'supertest';
 import { app } from '../index';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
-import { getDb } from '../db/database';
+import { prisma } from '../db/prisma';
 import bcrypt from 'bcryptjs';
 
 describe('Profile Module', () => {
-  let db: any;
   let userToken: string;
   const userEmail = `profile_test_${Date.now()}@example.com`;
 
   beforeAll(async () => {
-    db = await getDb();
+    await prisma.$connect();
   });
 
   it('requires authentication for profile endpoints', async () => {
@@ -24,11 +23,9 @@ describe('Profile Module', () => {
 
   it('validates Indian mobile number format', async () => {
     const password_hash = await bcrypt.hash('Password@123', 10);
-    const user = await db
-      .insertInto('users')
-      .values({ email: userEmail, password_hash, is_verified: true })
-      .returningAll()
-      .executeTakeFirstOrThrow();
+    const user = await prisma.user.create({
+      data: { email: userEmail, password_hash, is_verified: true },
+    });
 
     userToken = jwt.sign({ userId: user.id, email: userEmail }, env.JWT_SECRET);
 

@@ -9,7 +9,7 @@ take-home assignment.
 - Client: React Native, Expo, TypeScript.
 - Server: Node.js, Express, TypeScript.
 - Database: PostgreSQL.
-- Query builder: Kysely.
+- ORM: Prisma.
 - Validation: Zod.
 - Authentication: JWT.
 - Email: Nodemailer with Mailpit for local testing.
