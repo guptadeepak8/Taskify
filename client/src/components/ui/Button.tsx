@@ -12,7 +12,7 @@ export interface ButtonProps extends TouchableOpacityProps {
   title: string;
   loading?: boolean;
   loadingText?: string;
-  variant?: 'primary' | 'secondary' | 'outline';
+  variant?: 'primary' | 'secondary' | 'outline' | 'danger';
 }
 
 export function Button({
@@ -35,6 +35,7 @@ export function Button({
         variant === 'primary' && styles.primary,
         variant === 'secondary' && styles.secondary,
         variant === 'outline' && styles.outline,
+        variant === 'danger' && styles.danger,
         isDisabled && styles.disabled,
         style,
       ]}
@@ -83,6 +84,14 @@ const styles = StyleSheet.create({
   primary: {
     backgroundColor: Colors.primary,
     shadowColor: Colors.primaryDark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  danger: {
+    backgroundColor: Colors.error,
+    shadowColor: Colors.error,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,

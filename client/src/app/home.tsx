@@ -15,6 +15,7 @@ import { ErrorScreen } from '../components/ui/ErrorScreen';
 import { EmptyState } from '../components/ui/EmptyState';
 import { SelectedTaskCard } from '../components/home/SelectedTaskCard';
 import { ProfileModal } from '../components/home/ProfileModal';
+import { DeleteTaskModal } from '../components/home/DeleteTaskModal';
 import { apiRequest } from '../utils/api';
 import { clearAuthSession, getUserData } from '../utils/storage';
 import { User, Task } from '../types';
@@ -23,6 +24,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
 
   const { data: user } = useQuery<User | null>({
     queryKey: ['userProfile'],
@@ -86,8 +88,14 @@ export default function HomeScreen() {
     router.replace('/login');
   };
 
-  const handleRemoveTask = (taskId: string) => {
-    removeTaskMutation.mutate(taskId);
+  const handleConfirmRemoveTask = () => {
+    if (taskToDelete) {
+      removeTaskMutation.mutate(taskToDelete.id, {
+        onSettled: () => {
+          setTaskToDelete(null);
+        },
+      });
+    }
   };
 
   const groupedSelected = useMemo(() => {
@@ -176,7 +184,7 @@ export default function HomeScreen() {
                 <SelectedTaskCard
                   key={item.id}
                   task={item}
-                  onRemove={handleRemoveTask}
+                  onRemove={() => setTaskToDelete(item)}
                 />
               ))}
             </View>
@@ -196,6 +204,14 @@ export default function HomeScreen() {
           });
         }}
         onSignOut={handleLogout}
+      />
+
+      <DeleteTaskModal
+        visible={taskToDelete !== null}
+        task={taskToDelete}
+        deleting={removeTaskMutation.isPending}
+        onConfirm={handleConfirmRemoveTask}
+        onCancel={() => setTaskToDelete(null)}
       />
     </SafeAreaView>
   );
