@@ -1,7 +1,11 @@
 import { getToken } from './storage';
 import { ApiErrorResponse, ApiResponse } from '../types';
 
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || '';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+
+if (!API_BASE_URL) {
+  throw new Error('EXPO_PUBLIC_API_URL is required');
+}
 
 export class ApiError extends Error {
   code: string;

@@ -1,0 +1,43 @@
+# Dependencies (installed freshly on EAS builder)
+node_modules/
+.pnpm-store/
+
+# Local Expo & Metro caches
+.expo/
+dist/
+web-build/
+.metro-health-check*
+
+# Tests & coverage
+coverage/
+__tests__/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Native build artifacts
+android/
+ios/
+.kotlin/
+
+# IDE & Editor files
+.vscode/
+.idea/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs & temporary files
+*.log
+npm-debug.*
+yarn-debug.*
+pnpm-debug.*
+*.tmp
+*.swp
+*.tsbuildinfo
+
+# Documentation
+*.md
